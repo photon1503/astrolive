@@ -809,9 +809,9 @@ class Dome(MqttConnector):
             if device.connected():
                 await self._publisher.publish_mqtt(topic + "lwt", "ON")
                 state = {
-                    "athome": device.athome(),
-                    "atpark": device.atpark(),
-                    "shutterstatus": device.shutterstatus(),
+                    "at_home": "on" if device.athome() else "off",
+                    "at_park": "on" if device.atpark() else "off",
+                    "shutter_status": device.shutterstatus(),
                 }
                 try:
                     state["altitude"] = device.altitude()

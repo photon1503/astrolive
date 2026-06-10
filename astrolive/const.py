@@ -636,7 +636,7 @@ FUNCTIONS = {
             STATE_CLASS_MEASUREMENT,
         ],
         [
-            TYPE_BINARY_SENSOR,
+            TYPE_SENSOR,
             "Shutter status",
             UNIT_OF_MEASUREMENT_NONE,
             DEVICE_TYPE_DOME_ICON,
