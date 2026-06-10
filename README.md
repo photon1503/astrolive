@@ -159,6 +159,11 @@ observatory:
       # No address here -> uses observatory address
 ```
 
+    Preset selection:
+
+    - AstroLive uses the `default` preset unless `ASTROLIVE_PRESET` is set.
+    - Example: `ASTROLIVE_PRESET=travel` to run the `travel` profile from your config.
+
 > ***Note:*** If you are using drivers provided with the sequencer software, using ASCOM remote in parallel will mess up the imaging session when accessing the camera API. Tested with QHY and N.I.N.A./PHD2. For that reason, I'm always using the `camera_file` component witch checks for the latest FITS-file published within a given directory tree.
 
 <details><summary><b>Show YAML</b></summary>

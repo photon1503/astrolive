@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+import os
 import sys
 import traceback
 from threading import Thread
@@ -51,7 +52,14 @@ class AstroLive:
         if configuration is None:
             configuration = Config.global_instance()
         self.config = configuration
-        self.preset = "default"
+        self.preset = os.getenv("ASTROLIVE_PRESET", "default")
+
+        if self.preset not in self.config.data:
+            available_presets = ", ".join(sorted(self.config.data.keys()))
+            raise KeyError(
+                f"Preset '{self.preset}' not found in configuration. "
+                f"Available presets: {available_presets}"
+            )
 
         self._options = self.config.data[self.preset]["observatory"]
         self._mqtthandler = None
@@ -291,13 +299,24 @@ class AstroLive:
 
         if self.obs is None:
             self.obs = Observatory()
-            self.obs.connect()
+            self.obs.connect(self.preset)
 
         # Iteration of all children of Observatory object
         children = {}
         for child in self.obs.children_tree_iter():
             if isinstance(child, Observatory):
                 continue
+
+            resolved_address = child.get_option_recursive("address")
+            if resolved_address and child.kind != "file":
+                _LOGGER.info(
+                    "Resolved endpoint for %s (%s/%s): %s",
+                    child.sys_id,
+                    child.kind,
+                    child.component_options.get("device_number", 0),
+                    resolved_address,
+                )
+
             children[child.sys_id] = {
                 "kind": child.kind,
                 "name": "",

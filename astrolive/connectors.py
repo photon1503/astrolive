@@ -64,8 +64,11 @@ class AlpacaConnector(Connector):
     def configure_components(self):
         """Configure Components"""
 
-    def scan_connection(self, address: str = "http://localhost:11111/api/v1"):
+    def scan_connection(self, address: str):
         """Scan for connected devices"""
+
+        if not address:
+            raise ValueError("Alpaca scan_connection requires an explicit address")
 
         properties = [
             "name",
