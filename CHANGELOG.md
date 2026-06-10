@@ -1,3 +1,18 @@
+# [0.8](https://github.com/mawinkler/astrolive/compare/v0.7...v0.8) (2026-06-10)
+
+### Fixes
+
+- Fixed dome device thread dying permanently when the driver does not implement the optional `altitude` or `azimuth` properties. Unsupported optional dome properties now publish `null` instead of raising an unhandled `AlpacaError` that terminated the MQTT thread.
+- Fixed the same class of bug for telescope optional properties (`declinationrate`, `guideratedeclination`, `rightascensionrate`, `guideraterightascension`, `sideofpier`, `siteelevation`, `sitelatitude`, `sitelongitude`) and rotator `mechanicalposition`. Drivers that do not implement these no longer kill the device thread.
+- Fixed `CameraFile` accessing FITS header data after the `fits.open()` context manager had already closed the file handle.
+
+### Changes
+
+- Replaced blocking `time.sleep()` with `await asyncio.sleep()` in all device `publish_loop()` methods, allowing the async event loop to remain responsive during polling intervals.
+- Replaced `sys.exit(0)` at the end of `publish_loop()` methods with a plain `return`.
+- Removed duplicate `logging.basicConfig()` call in `client.py` (superseded by the one in `run.py`).
+- Removed unused `from tokenize import String` import in `client.py`.
+
 # [0.7](https://github.com/mawinkler/astrolive/compare/v0.6...v0.7) (2025-04-12)
 
 I am working on making the reconnects more reliable when the observatory is temporarily unavailable.

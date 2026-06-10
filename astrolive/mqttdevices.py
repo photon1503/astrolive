@@ -1,13 +1,12 @@
 """Handler for MQTT communication"""
 
+import asyncio
 import glob
 import json
 import logging
 import os
-import sys
 import time
 from datetime import datetime, timezone
-from time import sleep
 from typing import Callable, Iterable, Tuple
 
 import cv2
@@ -217,14 +216,14 @@ class Telescope(MqttConnector):
                 execution_time = round(time.time() - start, 1)
                 _LOGGER.debug("Execution time for %s %ds", sys_id, execution_time)
                 await self._publish_telescope(sys_id, device, device_type)
-                sleep(interval)
+                await asyncio.sleep(interval)
             except KeyboardInterrupt:
                 break
             except (RequestConnectionError, DeviceResponseError):
                 _LOGGER.error("Stopping thread for %s", sys_id)
                 break
         _LOGGER.warning("Thread %s exits", sys_id)
-        sys.exit(0)
+        return
 
     async def _publish_telescope(self, sys_id, device, device_type):
         """Publish telescope state
@@ -248,17 +247,25 @@ class Telescope(MqttConnector):
                     "altitude": round(device.altitude(), 3),
                     "azimuth": round(device.azimuth(), 3),
                     "declination": round(device.declination(), 3),
-                    "declination_rate": round(device.declinationrate(), 3),
-                    "guiderate_declination": round(device.guideratedeclination(), 3),
                     "right_ascension": round(device.rightascension(), 3),
-                    "right_ascension_rate": round(device.rightascensionrate(), 3),
-                    "guiderate_right_ascension": round(device.guideraterightascension(), 3),
-                    "side_of_pier": device.sideofpier(),
-                    "site_elevation": round(device.siteelevation(), 3),
-                    "site_latitude": round(device.sitelatitude(), 3),
-                    "site_longitude": round(device.sitelongitude(), 3),
                     "slewing": "on" if device.slewing() else "off",
                 }
+                _optional_telescope = {
+                    "declination_rate": lambda: round(device.declinationrate(), 3),
+                    "guiderate_declination": lambda: round(device.guideratedeclination(), 3),
+                    "right_ascension_rate": lambda: round(device.rightascensionrate(), 3),
+                    "guiderate_right_ascension": lambda: round(device.guideraterightascension(), 3),
+                    "side_of_pier": lambda: device.sideofpier(),
+                    "site_elevation": lambda: round(device.siteelevation(), 3),
+                    "site_latitude": lambda: round(device.sitelatitude(), 3),
+                    "site_longitude": lambda: round(device.sitelongitude(), 3),
+                }
+                for _key, _fn in _optional_telescope.items():
+                    try:
+                        state[_key] = _fn()
+                    except AlpacaError:
+                        _LOGGER.debug("%s: %s not supported by this telescope", sys_id, _key)
+                        state[_key] = None
                 await self._publisher.publish_mqtt(topic + "state", json.dumps(state))
             else:
                 await self._publisher.publish_mqtt(topic + "lwt", "OFF")
@@ -287,14 +294,14 @@ class Camera(MqttConnector):
                 execution_time = round(time.time() - start, 1)
                 _LOGGER.debug("Execution time for %s %ds", sys_id, execution_time)
                 await self._publish_camera(sys_id, device, device_type)
-                sleep(interval)
+                await asyncio.sleep(interval)
             except KeyboardInterrupt:
                 break
             except (RequestConnectionError, DeviceResponseError):
                 _LOGGER.error("Stopping thread for %s", sys_id)
                 break
         _LOGGER.warning("Thread %s exits", sys_id)
-        sys.exit(0)
+        return
 
     async def _publish_camera(self, sys_id, device, device_type):
         """Publish camera state and image
@@ -405,14 +412,14 @@ class CameraFile(MqttConnector):
                 execution_time = round(time.time() - start, 1)
                 _LOGGER.debug("Execution time for %s %ds", sys_id, execution_time)
                 await self._publish_camera_file(sys_id, device, device_type, execution_time)
-                sleep(interval)
+                await asyncio.sleep(interval)
             except KeyboardInterrupt:
                 break
             except (RequestConnectionError, DeviceResponseError):
                 _LOGGER.error("Stopping thread for %s", sys_id)
                 break
         _LOGGER.warning("Thread %s exits", sys_id)
-        sys.exit(0)
+        return
 
     """
     FITS Header example
@@ -498,15 +505,14 @@ class CameraFile(MqttConnector):
                     # hdul = fits.open(latest_file)
                     hdr = hdul[0].header
                     image_data = fits.getdata(latest_file, ext=0)
+                    objctra_fits = hdul[0].header.get("OBJCTRA", "n/a")
+                    objctdec_fits = hdul[0].header.get("OBJCTDEC", "n/a")
             except OSError:
                 _LOGGER.error(
                     "%s: No SIMPLE card found, this file does not appear to be a valid FITS file",
                     sys_id,
                 )
                 return
-
-            objctra_fits = hdul[0].header.get("OBJCTRA", "n/a")
-            objctdec_fits = hdul[0].header.get("OBJCTDEC", "n/a")
             objct_coords = SkyCoord(objctra_fits, objctdec_fits, unit=(u.hour, u.deg))
 
             topic = "astrolive/" + device_type + "/" + sys_id_ + "/"
@@ -596,14 +602,14 @@ class Focuser(MqttConnector):
                 execution_time = round(time.time() - start, 1)
                 _LOGGER.debug("Execution time for %s %ds", sys_id, execution_time)
                 await self._publish_focuser(sys_id, device, device_type)
-                sleep(interval)
+                await asyncio.sleep(interval)
             except KeyboardInterrupt:
                 break
             except (RequestConnectionError, DeviceResponseError):
                 _LOGGER.error("Stopping thread for %s", sys_id)
                 break
         _LOGGER.warning("Thread %s exits", sys_id)
-        sys.exit(0)
+        return
 
     async def _publish_focuser(self, sys_id, device, device_type):
         """Publish the focuser state
@@ -653,14 +659,14 @@ class Switch(MqttConnector):
                 execution_time = round(time.time() - start, 1)
                 _LOGGER.debug("Execution time for %s %ds", sys_id, execution_time)
                 await self._publish_switch(sys_id, device, device_type)
-                sleep(interval)
+                await asyncio.sleep(interval)
             except KeyboardInterrupt:
                 break
             except (RequestConnectionError, DeviceResponseError):
                 _LOGGER.error("Stopping thread for %s", sys_id)
                 break
         _LOGGER.warning("Thread %s exits", sys_id)
-        sys.exit(0)
+        return
 
     async def _publish_switch(self, sys_id, device, device_type):
         """Publish the device state
@@ -719,14 +725,14 @@ class FilterWheel(MqttConnector):
                 execution_time = round(time.time() - start, 1)
                 _LOGGER.debug("Execution time for %s %ds", sys_id, execution_time)
                 await self._publish_filterwheel(sys_id, device, device_type)
-                sleep(interval)
+                await asyncio.sleep(interval)
             except KeyboardInterrupt:
                 break
             except (RequestConnectionError, DeviceResponseError):
                 _LOGGER.error("Stopping thread for %s", sys_id)
                 break
         _LOGGER.warning("Thread %s exits", sys_id)
-        sys.exit(0)
+        return
 
     async def _publish_filterwheel(self, sys_id, device, device_type):
         """Publish the filterwheel state
@@ -777,14 +783,14 @@ class Dome(MqttConnector):
                 execution_time = round(time.time() - start, 1)
                 _LOGGER.debug("Execution time for %s %ds", sys_id, execution_time)
                 await self._publish_dome(sys_id, device, device_type)
-                sleep(interval)
+                await asyncio.sleep(interval)
             except KeyboardInterrupt:
                 break
             except (RequestConnectionError, DeviceResponseError):
                 _LOGGER.error("Stopping thread for %s", sys_id)
                 break
         _LOGGER.warning("Thread %s exits", sys_id)
-        sys.exit(0)
+        return
 
     async def _publish_dome(self, sys_id, device, device_type):
         """Publish the dome state
@@ -803,12 +809,20 @@ class Dome(MqttConnector):
             if device.connected():
                 await self._publisher.publish_mqtt(topic + "lwt", "ON")
                 state = {
-                    "altitude": device.altitude(),
                     "athome": device.athome(),
                     "atpark": device.atpark(),
-                    "azimuth": device.azimuth(),
                     "shutterstatus": device.shutterstatus(),
                 }
+                try:
+                    state["altitude"] = device.altitude()
+                except AlpacaError:
+                    _LOGGER.debug("%s: altitude not supported by this dome", sys_id)
+                    state["altitude"] = None
+                try:
+                    state["azimuth"] = device.azimuth()
+                except AlpacaError:
+                    _LOGGER.debug("%s: azimuth not supported by this dome", sys_id)
+                    state["azimuth"] = None
                 await self._publisher.publish_mqtt(topic + "state", json.dumps(state))
             else:
                 await self._publisher.publish_mqtt(topic + "lwt", "OFF")
@@ -837,14 +851,14 @@ class Rotator(MqttConnector):
                 execution_time = round(time.time() - start, 1)
                 _LOGGER.debug("Execution time for %s %ds", sys_id, execution_time)
                 await self._publish_rotator(sys_id, device, device_type)
-                sleep(interval)
+                await asyncio.sleep(interval)
             except KeyboardInterrupt:
                 break
             except (RequestConnectionError, DeviceResponseError):
                 _LOGGER.error("Stopping thread for %s", sys_id)
                 break
         _LOGGER.warning("Thread %s exits", sys_id)
-        sys.exit(0)
+        return
 
     async def _publish_rotator(self, sys_id, device, device_type):
         """Publish the rotator state
@@ -863,9 +877,13 @@ class Rotator(MqttConnector):
             if device.connected():
                 await self._publisher.publish_mqtt(topic + "lwt", "ON")
                 state = {
-                    "mechanicalposition": device.mechanicalposition(),
                     "position": device.position(),
                 }
+                try:
+                    state["mechanicalposition"] = device.mechanicalposition()
+                except AlpacaError:
+                    _LOGGER.debug("%s: mechanicalposition not supported by this rotator", sys_id)
+                    state["mechanicalposition"] = None
                 await self._publisher.publish_mqtt(topic + "state", json.dumps(state))
             else:
                 await self._publisher.publish_mqtt(topic + "lwt", "OFF")
@@ -894,14 +912,14 @@ class SafetyMonitor(MqttConnector):
                 execution_time = round(time.time() - start, 1)
                 _LOGGER.debug("Execution time for %s %ds", sys_id, execution_time)
                 await self._publish_safetymonitor(sys_id, device, device_type)
-                sleep(interval)
+                await asyncio.sleep(interval)
             except KeyboardInterrupt:
                 break
             except (RequestConnectionError, DeviceResponseError):
                 _LOGGER.error("Stopping thread for %s", sys_id)
                 break
         _LOGGER.warning("Thread %s exits", sys_id)
-        sys.exit(0)
+        return
 
     async def _publish_safetymonitor(self, sys_id, device, device_type):
         """Publish the safetymonitor state

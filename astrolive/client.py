@@ -6,7 +6,6 @@ import sys
 import traceback
 from threading import Thread
 from time import sleep
-from tokenize import String
 from typing import Optional
 
 import pandas as pd
@@ -38,12 +37,6 @@ from .mqtthandler import Connector as MqttHandler
 from .observatory import CameraFile, Observatory, Switch
 
 _LOGGER = logging.getLogger(__name__)
-logging.basicConfig(
-    stream=sys.stdout,
-    level=logging.DEBUG,
-    format="%(asctime)s %(levelname)s (%(threadName)s) [%(funcName)s] %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-)
 logging.getLogger("requests").setLevel(logging.WARNING)
 logging.getLogger("urllib3").setLevel(logging.WARNING)
 
