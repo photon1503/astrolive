@@ -172,7 +172,7 @@ class AstroLive:
             pass
 
     @staticmethod
-    def esc(code) -> String:
+    def esc(code) -> str:
         """Escape color codes.
 
         Returns:
