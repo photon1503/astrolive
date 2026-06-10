@@ -5,6 +5,7 @@
 - Fixed dome device thread dying permanently when the driver does not implement the optional `altitude` or `azimuth` properties. Unsupported optional dome properties now publish `null` instead of raising an unhandled `AlpacaError` that terminated the MQTT thread.
 - Fixed the same class of bug for telescope optional properties (`declinationrate`, `guideratedeclination`, `rightascensionrate`, `guideraterightascension`, `sideofpier`, `siteelevation`, `sitelatitude`, `sitelongitude`) and rotator `mechanicalposition`. Drivers that do not implement these no longer kill the device thread.
 - Fixed `CameraFile` accessing FITS header data after the `fits.open()` context manager had already closed the file handle.
+- Fixed `Camera._get_imagedata()` using a hardcoded Alpaca URL (`192.168.1.233:11111/camera/1`). Camera image requests now use the configured component endpoint and device number.
 
 ### Changes
 
@@ -12,6 +13,8 @@
 - Replaced `sys.exit(0)` at the end of `publish_loop()` methods with a plain `return`.
 - Removed duplicate `logging.basicConfig()` call in `client.py` (superseded by the one in `run.py`).
 - Removed unused `from tokenize import String` import in `client.py`.
+- Added recursive config validation for endpoint `address` values (must be valid `http://` or `https://` URLs).
+- Updated configuration and README guidance for per-device endpoint routing: direct Alpaca endpoints per device are supported, with ASCOM Remote used only where needed by configuration.
 
 # [0.7](https://github.com/mawinkler/astrolive/compare/v0.6...v0.7) (2025-04-12)
 

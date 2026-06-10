@@ -1209,8 +1209,18 @@ class Camera(Device):
 
         import requests
 
-        self.base_url = "http://192.168.1.233:11111/api/v1/camera/1/"
-        url = f"{self.base_url}/{attribute}"
+        address = self.get_option_recursive("address")
+        if not address:
+            raise ValueError(f"No address configured for component {self.sys_id}")
+
+        base_url = "/".join(
+            [
+                address,
+                self.component_options["kind"],
+                str(self.component_options.get("device_number", 0)),
+            ]
+        )
+        url = f"{base_url}/{attribute}"
         hdrs = {"accept": "application/imagebytes"}
         # Make Host: header safe for IPv6
         # if(self.address.startswith('[') and not self.address.startswith('[::1]')):
@@ -1223,7 +1233,7 @@ class Camera(Device):
         #     Device._client_trans_id += 1
         # finally:
         #     Device._ctid_lock.release()
-        response = requests.get("%s/%s" % (self.base_url, attribute), params=pdata, headers=hdrs)
+        response = requests.get(url, params=pdata, headers=hdrs)
 
         if response.status_code not in range(200, 204):  # HTTP level errors
             raise Exception(

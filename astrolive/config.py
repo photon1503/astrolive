@@ -4,6 +4,7 @@ import logging
 import os.path
 from os import PathLike
 from typing import Iterable, Optional, Union
+from urllib.parse import urlparse
 
 import yaml
 
@@ -104,6 +105,34 @@ class Config:
         for config_keys in config.keys():
             self.expand_includes(config, config_keys)
         self.data = config
+        self._validate_endpoint_addresses()
+
+    def _validate_endpoint_addresses(self) -> None:
+        """Validate configured endpoint addresses for observatories and components."""
+
+        for preset, preset_config in self.data.items():
+            if not isinstance(preset_config, dict):
+                continue
+            observatory = preset_config.get("observatory")
+            if isinstance(observatory, dict):
+                self._validate_component_addresses(observatory, f"{preset}.observatory")
+
+    def _validate_component_addresses(self, component: dict, path: str) -> None:
+        """Recursively validate endpoint addresses within one component subtree."""
+
+        address = component.get("address")
+        if address is not None:
+            parsed = urlparse(str(address))
+            if parsed.scheme not in ("http", "https") or not parsed.netloc:
+                raise ValueError(f"Invalid address at {path}: {address}")
+
+        children = component.get("components", {})
+        if not isinstance(children, dict):
+            return
+
+        for child_name, child in children.items():
+            if isinstance(child, dict):
+                self._validate_component_addresses(child, f"{path}.components.{child_name}")
 
     @classmethod
     def expand_includes(cls, config_dict: dir, key: str) -> None:

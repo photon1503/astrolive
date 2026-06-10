@@ -31,7 +31,8 @@ AstroLive uses the nice ALPACA client implementation of the [OCA Box](https://gi
 
 ## How It Works
 
-- AstroLive connects via the ASCOM Alpaca API to your observatory.
+- AstroLive connects to Alpaca endpoints defined in your configuration.
+- You can configure endpoints per device. Devices with native Alpaca support can connect directly, while non-Alpaca drivers can stay behind ASCOM Remote.
 - For each configured and connected component a MQTT device configuration for sensors, binary_sensors, switches and if applicable camera is created below `homeassistant/`.
 - As of now the following components are supported:
   - Telescope
@@ -63,7 +64,7 @@ See chapter [Devices and Sensors, Binary Sensors, Switches and Cameras](#devices
 
 - A windows (mini) pc/notebook controlling your scope
 - ASCOM Platform
-- [ASCOMRemote](https://github.com/ASCOMInitiative/ASCOMRemote/releases).
+- [ASCOMRemote](https://github.com/ASCOMInitiative/ASCOMRemote/releases) (optional, for devices without native Alpaca support).
 - Container runtime engine (e.g. Docker).
 - MQTT Broker (e.g. Mosquitto).
 - A recent version of Home Assistant with MQTT autodiscovery enabled.
@@ -93,7 +94,8 @@ Since NINA does provide it's own drivers to interact with the QHY camera I did *
 
 ## Usage
 
-> Ensure to have the ASCOM Platform deployed on your astro imaging server.
+> Ensure to have Alpaca-capable endpoints available for your devices.
+> Install ASCOM Platform and ASCOM Remote only for devices that do not expose Alpaca directly.
 
 ### Installation and Configuration of ASCOM Remote Server
 
@@ -134,6 +136,27 @@ Now, create a `default.cfg.yaml` based on the supplied `default.cfg.yaml.sample`
 
 ```sh
 cp astrolive/default.cfg.yaml.sample astrolive/default.cfg.yaml
+```
+
+AstroLive resolves `address` recursively per component:
+
+- If a device has its own `address`, that endpoint is used for this device.
+- Otherwise, the parent `address` is used.
+- This allows mixed setups where direct Alpaca devices and ASCOM Remote proxied devices run together.
+
+Typical pattern:
+
+```yaml
+observatory:
+  protocol: alpaca
+  address: http://<ASCOM_REMOTE_OR_DEFAULT_ALPACA>/api/v1
+  components:
+    telescope:
+      kind: telescope
+      address: http://<TELESCOPE_ALPACA_HOST>:<PORT>/api/v1
+    focuser:
+      kind: focuser
+      # No address here -> uses observatory address
 ```
 
 > ***Note:*** If you are using drivers provided with the sequencer software, using ASCOM remote in parallel will mess up the imaging session when accessing the camera API. Tested with QHY and N.I.N.A./PHD2. For that reason, I'm always using the `camera_file` component witch checks for the latest FITS-file published within a given directory tree.

@@ -22,8 +22,9 @@ backyard:
     elev: <ELEVATION>
     # Communication protocol
     protocol: alpaca
-    # Address of the ASCOM Remote server
-    address: http://<IP OF ASCOMRemote>:11111/api/v1
+    # Default Alpaca endpoint for this observatory tree.
+    # This can be ASCOM Remote or a native Alpaca endpoint.
+    address: http://<DEFAULT ALPACA ENDPOINT>/api/v1
 
     components:
       telescope:
@@ -32,6 +33,9 @@ backyard:
         comment: <NAME OF YOUR SCOPE>
         # Device number as configured in ASCOM Remote
         device_number: 0
+        # Optional per-device endpoint override.
+        # Use this for devices that already provide their own Alpaca server.
+        # address: http://<IP OF TELESCOPE ALPACA ENDPOINT>:<PORT>/api/v1
         # Name prefix of the created sensor in MQTT
         friendly_name: <NAME OF YOUR SCOPE>
         # Update interval in seconds
@@ -58,6 +62,10 @@ backyard:
           # camera:
           #   # Kind of the device
           #   kind: camera
+          #   # Optional endpoint override for this device.
+          #   # Set this to the camera's own Alpaca endpoint when available.
+          #   # Leave unset to use the parent endpoint (for example ASCOM Remote).
+          #   # address: http://<IP OF CAMERA ALPACA ENDPOINT>:<PORT>/api/v1
           #   # Device number as configured in ASCOM Remote
           #   device_number: 0
           #   # Name prefix of the created sensor in MQTT
@@ -148,8 +156,9 @@ travel:
     elev: <ELEVATION>
     # Communication protocol
     protocol: alpaca
-    # Address of the ASCOM Remote server
-    address: http://<IP OF ASCOMRemote>:11111/api/v1
+    # Default Alpaca endpoint for this observatory tree.
+    # This can be ASCOM Remote or a native Alpaca endpoint.
+    address: http://<DEFAULT ALPACA ENDPOINT>/api/v1
 
     components:
       telescope:
