@@ -2409,6 +2409,7 @@ class ObservingConditions(Device):
 
 
 _component_classes = {
+    "telescope": Telescope,
     "dome": Dome,
     "camera": Camera,
     "filterwheel": FilterWheel,
