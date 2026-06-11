@@ -44,6 +44,7 @@ from .observatory import (
     Dome,
     FilterWheel,
     Focuser,
+    ObservingConditions,
     Rotator,
     SafetyMonitor,
     Switch,
@@ -631,6 +632,11 @@ class Focuser(MqttConnector):
                     "position": device.position(),
                     "is_moving": "on" if device.ismoving() else "off",
                 }
+                try:
+                    state["temperature"] = round(device.temperature(), 2)
+                except AlpacaError:
+                    _LOGGER.debug("%s: temperature not supported by this focuser", sys_id)
+                    state["temperature"] = None
                 await self._publisher.publish_mqtt(topic + "state", json.dumps(state))
             else:
                 await self._publisher.publish_mqtt(topic + "lwt", "OFF")
@@ -949,6 +955,68 @@ class SafetyMonitor(MqttConnector):
             raise rcedre
 
 
+class ObservingConditions(MqttConnector):
+    """MQTT Device ObservingConditions"""
+
+    # All properties are optional per the ASCOM spec — drivers may not implement
+    # all sensors. Each is wrapped individually so a missing sensor publishes null
+    # rather than killing the thread.
+    _OPTIONAL_PROPERTIES = (
+        "cloudcover",
+        "dewpoint",
+        "humidity",
+        "pressure",
+        "rainrate",
+        "skybrightness",
+        "skyquality",
+        "skytemperature",
+        "stardistance",
+        "temperature",
+        "winddirection",
+        "windgust",
+        "windspeed",
+    )
+
+    async def publish_loop(self, sys_id, device, device_type, interval):
+        start = time.time()
+        while True:
+            try:
+                execution_time = round(time.time() - start, 1)
+                _LOGGER.debug("Execution time for %s %ds", sys_id, execution_time)
+                await self._publish_observingconditions(sys_id, device, device_type)
+                await asyncio.sleep(interval)
+            except KeyboardInterrupt:
+                break
+            except (RequestConnectionError, DeviceResponseError):
+                _LOGGER.warning("Endpoint unavailable for %s, retrying in %ds", sys_id, interval)
+                await asyncio.sleep(interval)
+        _LOGGER.warning("Thread %s exits", sys_id)
+        return
+
+    async def _publish_observingconditions(self, sys_id, device, device_type):
+        sys_id_ = sys_id.replace(".", "_")
+        _LOGGER.debug("%s: Update", sys_id)
+        topic = "astrolive/" + device_type + "/" + sys_id_ + "/"
+        try:
+            if device.connected():
+                await self._publisher.publish_mqtt(topic + "lwt", "ON")
+                state = {}
+                for prop in self._OPTIONAL_PROPERTIES:
+                    try:
+                        value = getattr(device, prop)()
+                        state[prop] = round(value, 3) if isinstance(value, float) else value
+                    except AlpacaError:
+                        _LOGGER.debug("%s: %s not supported by this device", sys_id, prop)
+                        state[prop] = None
+                await self._publisher.publish_mqtt(topic + "state", json.dumps(state))
+            else:
+                await self._publisher.publish_mqtt(topic + "lwt", "OFF")
+        except (RequestConnectionError, DeviceResponseError) as rcedre:
+            await self._publisher.publish_mqtt(topic + "lwt", "OFF")
+            _LOGGER.error("%s: Not connected", sys_id)
+            raise rcedre
+
+
 _connector_classes = {
     "telescope": Telescope,
     "camera": Camera,
@@ -959,4 +1027,5 @@ _connector_classes = {
     "dome": Dome,
     "safetymonitor": SafetyMonitor,
     "rotator": Rotator,
+    "observingconditions": ObservingConditions,
 }

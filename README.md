@@ -44,6 +44,7 @@ AstroLive uses the nice ALPACA client implementation of the [OCA Box](https://gi
   - Dome
   - Rotator
   - SafetyMonitor
+  - ObservingConditions
 - These configurations allow MQTT auto discovery in Home Assistant.
 - AstroLive then starts a seperate thread for each device which queries the compenent status interval according to the configuration and publishes the device state to MQTT.
 - If the component is of the type Camera the last captured FITS image is autostretched, downsized and published as a .jpg. This is the same for Camera via file where AstroLive watches a directory for new FITS images.
@@ -214,6 +215,7 @@ backyard:
           #   rotator: Rotator
           #   switch: Switch
           #   safetymonitor: SafetyMonitor
+          #   observingconditions: Observing Conditions
           #   camera_file: Camera File, reads and processes the latest image within
           #     from a configured location.
 
@@ -272,6 +274,11 @@ backyard:
             kind: safetymonitor
             friendly_name: <NAME OF YOUR SAFETYMONITOR>
             update_interval: 30
+
+          observingconditions:
+            kind: observingconditions
+            friendly_name: <NAME OF YOUR WEATHER SENSOR>
+            update_interval: 60
 
           rotator:
             kind: rotator
@@ -424,21 +431,21 @@ The following devices with the sensors attached are created in Home Assistant ba
 
 #### Sensors
 
-Telescope | Camera | Camera File | Switch | Focuser | FilterWheel | Dome | Rotator | SafetyMonitor
---------- | ------ | ----------- | ------ | ------- | ----------- | ---- | ------- | -------------
-Altitude | Camera state | Image Type | Max switch | Position | Position | Altitude | Mechanical position | 
-Azimuth | CCD temperature | Exposure Duration | Switch Value 0 | | Names | Azimuth | Position
-Declination | Cooler Power | Time of observation | Switch Value 1 | | Current | 
-Declination rate | Image array | X axis binning | Switch Value ... | | | 
-Guiderate declination | Last exposure duration | Y axis binning | | | | 
-Right ascension | Last exposure start time | Gain
-Right ascension rate | Percent completed | Offset
-Guiderate right ascension | Readout mode | Pixel X axis size
-Side of pier | Readout modes | Pixel Y axis size
-Site elevation | Sensor type | Imaging instrument
-Site Latitude || CCD temperature
-Site Longitude || Filter
-||| Sensor readout mode
+Telescope | Camera | Camera File | Switch | Focuser | FilterWheel | Dome | Rotator | SafetyMonitor | ObservingConditions
+--------- | ------ | ----------- | ------ | ------- | ----------- | ---- | ------- | ------------- | -------------------
+Altitude | Camera state | Image Type | Max switch | Position | Position | Altitude | Mechanical position |  | Cloud cover
+Azimuth | CCD temperature | Exposure Duration | Switch Value 0 | Temperature | Names | Azimuth | Position |  | Dew point
+Declination | Cooler Power | Time of observation | Switch Value 1 |  | Current |  |  |  | Humidity
+Declination rate | Image array | X axis binning | Switch Value ... |  |  |  |  |  | Pressure
+Guiderate declination | Last exposure duration | Y axis binning |  |  |  |  |  |  | Rain rate
+Right ascension | Last exposure start time | Gain |  |  |  |  |  |  | Sky brightness
+Right ascension rate | Percent completed | Offset |  |  |  |  |  |  | Sky quality
+Guiderate right ascension | Readout mode | Pixel X axis size |  |  |  |  |  |  | Sky temperature
+Side of pier | Readout modes | Pixel Y axis size |  |  |  |  |  |  | Star distance
+Site elevation | Sensor type | Imaging instrument |  |  |  |  |  |  | Temperature
+Site Latitude || CCD temperature |  |  |  |  |  |  | Wind direction
+Site Longitude || Filter |  |  |  |  |  |  | Wind gust
+||| Sensor readout mode |  |  |  |  |  |  | Wind speed
 ||| Sensor Bayer pattern
 ||| Telescope
 ||| Focal length
@@ -454,16 +461,16 @@ Site Longitude || Filter
 
 #### Binary Sensors
 
-Telescope | Camera | Camera File | Switch | Focuser | FilterWheel | Dome | Rotator | SafetyMonitor
---------- | ------ | ----------- | ------ | ------- | ----------- | ---- | ------- | -------------
-At home | Cooler On | | | Is moving | | At home | | Is safe
-At park | Image Ready | | | | | At park
-Slewing | | | | | | Shutter status
+Telescope | Camera | Camera File | Switch | Focuser | FilterWheel | Dome | Rotator | SafetyMonitor | ObservingConditions
+--------- | ------ | ----------- | ------ | ------- | ----------- | ---- | ------- | ------------- | -------------------
+At home | Cooler On | | | Is moving | | At home | | Is safe |
+At park | Image Ready | | | | | At park | | |
+Slewing | | | | | | Shutter status | | |
 
 #### Switches
 
-Telescope | Camera | Camera File | Switch | Focuser | FilterWheel | Dome | Rotator | SafetyMonitor
---------- | ------ | ----------- | ------ | ------- | ----------- | ---- | ------- | -------------
+Telescope | Camera | Camera File | Switch | Focuser | FilterWheel | Dome | Rotator | SafetyMonitor | ObservingConditions
+--------- | ------ | ----------- | ------ | ------- | ----------- | ---- | ------- | ------------- | -------------------
 | | | | Switch 0
 | | | | Switch 1
 | | | | Switch ...

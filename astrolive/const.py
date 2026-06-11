@@ -50,6 +50,7 @@ DEVICE_TYPE_FILTERWHEEL = "filterwheel"
 DEVICE_TYPE_DOME = "dome"
 DEVICE_TYPE_ROTATOR = "rotator"
 DEVICE_TYPE_SAFETYMONITOR = "safetymonitor"
+DEVICE_TYPE_OBSERVINGCONDITIONS = "observingconditions"
 
 DEVICE_TYPE_TELESCOPE_ICON = "mdi:telescope"
 DEVICE_TYPE_CAMERA_ICON = "mdi:camera"
@@ -60,6 +61,7 @@ DEVICE_TYPE_FILTERWHEEL_ICON = "mdi:image-filter-black-white"
 DEVICE_TYPE_DOME_ICON = "mdi:greenhouse"
 DEVICE_TYPE_ROTATOR_ICON = "mdi:rotate-360"
 DEVICE_TYPE_SAFETYMONITOR_ICON = "mdi:seatbelt"
+DEVICE_TYPE_OBSERVINGCONDITIONS_ICON = "mdi:weather-partly-cloudy"
 
 # #########################################################################
 # Entities
@@ -89,14 +91,26 @@ UNIT_OF_MEASUREMENT_MILLIMETER = "mm"
 UNIT_OF_MEASUREMENT_PERCENTAGE = "%"
 UNIT_OF_MEASUREMENT_SECONDS = "s"
 UNIT_OF_MEASUREMENT_TEMP_CELSIUS = "°C"
+UNIT_OF_MEASUREMENT_PERCENT = "%"
+UNIT_OF_MEASUREMENT_HPA = "hPa"
+UNIT_OF_MEASUREMENT_MM_PER_HOUR = "mm/h"
+UNIT_OF_MEASUREMENT_LUX = "lx"
+UNIT_OF_MEASUREMENT_MAG_ARCSEC2 = "mag/arcsec²"
+UNIT_OF_MEASUREMENT_ARCSEC = '"'
+UNIT_OF_MEASUREMENT_METERS_PER_SEC = "m/s"
 
 DEVICE_CLASS_NONE = None
 DEVICE_CLASS_DISTANCE = "distance"
 DEVICE_CLASS_DURATION = "duration"
+DEVICE_CLASS_HUMIDITY = "humidity"
+DEVICE_CLASS_ILLUMINANCE = "illuminance"
 DEVICE_CLASS_POWER = "power"
+DEVICE_CLASS_PRECIPITATION_INTENSITY = "precipitation_intensity"
+DEVICE_CLASS_PRESSURE = "pressure"
 DEVICE_CLASS_SWITCH = "switch"
 DEVICE_CLASS_TEMPERATURE = "temperature"
 DEVICE_CLASS_TIMESTAMP = "timestamp"
+DEVICE_CLASS_WIND_SPEED = "wind_speed"
 
 STATE_CLASS_NONE = None
 STATE_CLASS_MEASUREMENT = "measurement"
@@ -541,6 +555,14 @@ FUNCTIONS = {
             DEVICE_CLASS_NONE,
             STATE_CLASS_NONE,
         ],
+        [
+            TYPE_SENSOR,
+            "Temperature",
+            UNIT_OF_MEASUREMENT_TEMP_CELSIUS,
+            DEVICE_TYPE_FOCUSER_ICON,
+            DEVICE_CLASS_TEMPERATURE,
+            STATE_CLASS_MEASUREMENT,
+        ],
     ),
     DEVICE_TYPE_SWITCH: (
         [
@@ -670,6 +692,112 @@ FUNCTIONS = {
             DEVICE_TYPE_SAFETYMONITOR_ICON,
             DEVICE_CLASS_NONE,
             STATE_CLASS_NONE,
+        ],
+    ),
+    DEVICE_TYPE_OBSERVINGCONDITIONS: (
+        [
+            TYPE_SENSOR,
+            "Cloud cover",
+            UNIT_OF_MEASUREMENT_PERCENT,
+            DEVICE_TYPE_OBSERVINGCONDITIONS_ICON,
+            DEVICE_CLASS_NONE,
+            STATE_CLASS_MEASUREMENT,
+        ],
+        [
+            TYPE_SENSOR,
+            "Dew point",
+            UNIT_OF_MEASUREMENT_TEMP_CELSIUS,
+            DEVICE_TYPE_OBSERVINGCONDITIONS_ICON,
+            DEVICE_CLASS_TEMPERATURE,
+            STATE_CLASS_MEASUREMENT,
+        ],
+        [
+            TYPE_SENSOR,
+            "Humidity",
+            UNIT_OF_MEASUREMENT_PERCENT,
+            DEVICE_TYPE_OBSERVINGCONDITIONS_ICON,
+            DEVICE_CLASS_HUMIDITY,
+            STATE_CLASS_MEASUREMENT,
+        ],
+        [
+            TYPE_SENSOR,
+            "Pressure",
+            UNIT_OF_MEASUREMENT_HPA,
+            DEVICE_TYPE_OBSERVINGCONDITIONS_ICON,
+            DEVICE_CLASS_PRESSURE,
+            STATE_CLASS_MEASUREMENT,
+        ],
+        [
+            TYPE_SENSOR,
+            "Rain rate",
+            UNIT_OF_MEASUREMENT_MM_PER_HOUR,
+            DEVICE_TYPE_OBSERVINGCONDITIONS_ICON,
+            DEVICE_CLASS_PRECIPITATION_INTENSITY,
+            STATE_CLASS_MEASUREMENT,
+        ],
+        [
+            TYPE_SENSOR,
+            "Sky brightness",
+            UNIT_OF_MEASUREMENT_LUX,
+            DEVICE_TYPE_OBSERVINGCONDITIONS_ICON,
+            DEVICE_CLASS_ILLUMINANCE,
+            STATE_CLASS_MEASUREMENT,
+        ],
+        [
+            TYPE_SENSOR,
+            "Sky quality",
+            UNIT_OF_MEASUREMENT_MAG_ARCSEC2,
+            DEVICE_TYPE_OBSERVINGCONDITIONS_ICON,
+            DEVICE_CLASS_NONE,
+            STATE_CLASS_MEASUREMENT,
+        ],
+        [
+            TYPE_SENSOR,
+            "Sky temperature",
+            UNIT_OF_MEASUREMENT_TEMP_CELSIUS,
+            DEVICE_TYPE_OBSERVINGCONDITIONS_ICON,
+            DEVICE_CLASS_TEMPERATURE,
+            STATE_CLASS_MEASUREMENT,
+        ],
+        [
+            TYPE_SENSOR,
+            "Star distance",
+            UNIT_OF_MEASUREMENT_ARCSEC,
+            DEVICE_TYPE_OBSERVINGCONDITIONS_ICON,
+            DEVICE_CLASS_NONE,
+            STATE_CLASS_MEASUREMENT,
+        ],
+        [
+            TYPE_SENSOR,
+            "Temperature",
+            UNIT_OF_MEASUREMENT_TEMP_CELSIUS,
+            DEVICE_TYPE_OBSERVINGCONDITIONS_ICON,
+            DEVICE_CLASS_TEMPERATURE,
+            STATE_CLASS_MEASUREMENT,
+        ],
+        [
+            TYPE_SENSOR,
+            "Wind direction",
+            UNIT_OF_MEASUREMENT_DEGREE,
+            DEVICE_TYPE_OBSERVINGCONDITIONS_ICON,
+            DEVICE_CLASS_NONE,
+            STATE_CLASS_MEASUREMENT,
+        ],
+        [
+            TYPE_SENSOR,
+            "Wind gust",
+            UNIT_OF_MEASUREMENT_METERS_PER_SEC,
+            DEVICE_TYPE_OBSERVINGCONDITIONS_ICON,
+            DEVICE_CLASS_WIND_SPEED,
+            STATE_CLASS_MEASUREMENT,
+        ],
+        [
+            TYPE_SENSOR,
+            "Wind speed",
+            UNIT_OF_MEASUREMENT_METERS_PER_SEC,
+            DEVICE_TYPE_OBSERVINGCONDITIONS_ICON,
+            DEVICE_CLASS_WIND_SPEED,
+            STATE_CLASS_MEASUREMENT,
         ],
     ),
 }

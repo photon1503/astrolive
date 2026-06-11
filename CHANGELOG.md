@@ -10,6 +10,8 @@
 - Fixed `sleep(3)` thread-stagger delay in `client.py` `start_monitoring()` also using blocking `time.sleep()` inside an async method.
 - Fixed `sleep(0.1)` in `mqtthandler.py` `MqttHandler.looper()` using blocking `time.sleep()` inside an `async` function.
 - All nine device `publish_loop()` methods (`Telescope`, `Camera`, `CameraFile`, `Focuser`, `Switch`, `FilterWheel`, `Dome`, `Rotator`, `SafetyMonitor`) previously exited permanently on `RequestConnectionError` or `DeviceResponseError`. They now retry after `interval` seconds, surviving transient endpoint outages without requiring the supervisor to recreate threads.
+- Added missing Focuser `temperature` property publishing to MQTT state, including Home Assistant autodiscovery metadata (`temperature` sensor in `°C`).
+- Added full Alpaca `ObservingConditions` device support (component kind `observingconditions`) with MQTT publishing for weather and sky sensors.
 
 ### Changes
 
@@ -21,6 +23,7 @@
 - Removed unused `from tokenize import String` import in `client.py`.
 - Added recursive config validation for endpoint `address` values (must be valid `http://` or `https://` URLs).
 - Updated configuration and README guidance for per-device endpoint routing: direct Alpaca endpoints per device are supported, with ASCOM Remote used only where needed by configuration.
+- Added Home Assistant entity definitions and MQTT connector wiring for `observingconditions` sensors (cloud cover, dew point, humidity, pressure, rain rate, sky brightness, sky quality, sky temperature, star distance, temperature, wind direction, wind gust, wind speed).
 
 # [0.7](https://github.com/mawinkler/astrolive/compare/v0.6...v0.7) (2025-04-12)
 

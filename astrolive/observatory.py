@@ -2309,8 +2309,106 @@ class Rotator(Device):
         self._put("sync", Position=Position)
 
 
+class ObservingConditions(Device):
+    """ObservingConditions specific methods.
+
+    Provides access to weather and atmospheric data as defined by the
+    ASCOM ObservingConditions interface.
+    """
+
+    def averageperiod(self, AveragePeriod: Optional[float] = None) -> float:
+        """Get or set the time period over which observations are averaged.
+
+        Args:
+            AveragePeriod (float): Time period (hours) over which sensor values are averaged.
+
+        Returns:
+            The averaging period in hours.
+        """
+        if AveragePeriod is None:
+            return self._get("averageperiod")
+        self._put("averageperiod", AveragePeriod=AveragePeriod)
+
+    def cloudcover(self) -> float:
+        """Amount of sky obscured by clouds (0–100 %)."""
+        return self._get("cloudcover")
+
+    def dewpoint(self) -> float:
+        """Atmospheric dew point temperature (°C)."""
+        return self._get("dewpoint")
+
+    def humidity(self) -> float:
+        """Atmospheric relative humidity (0–100 %)."""
+        return self._get("humidity")
+
+    def pressure(self) -> float:
+        """Atmospheric pressure (hPa)."""
+        return self._get("pressure")
+
+    def rainrate(self) -> float:
+        """Rain rate (mm/hr)."""
+        return self._get("rainrate")
+
+    def skybrightness(self) -> float:
+        """Sky brightness (Lux)."""
+        return self._get("skybrightness")
+
+    def skyquality(self) -> float:
+        """Sky quality (magnitudes per square arc second)."""
+        return self._get("skyquality")
+
+    def skytemperature(self) -> float:
+        """Sky temperature (°C)."""
+        return self._get("skytemperature")
+
+    def stardistance(self) -> float:
+        """Distance to the nearest star (arc seconds)."""
+        return self._get("stardistance")
+
+    def temperature(self) -> float:
+        """Ambient temperature (°C)."""
+        return self._get("temperature")
+
+    def winddirection(self) -> float:
+        """Wind direction (degrees, 0–360, clockwise from North)."""
+        return self._get("winddirection")
+
+    def windgust(self) -> float:
+        """Peak three-second wind gust speed (m/s)."""
+        return self._get("windgust")
+
+    def windspeed(self) -> float:
+        """Wind speed (m/s)."""
+        return self._get("windspeed")
+
+    def sensordescription(self, SensorName: str) -> str:
+        """Description of the named sensor.
+
+        Args:
+            SensorName (str): Name of the sensor.
+
+        Returns:
+            Description of the specified sensor.
+        """
+        return self._get("sensordescription", SensorName=SensorName)
+
+    def timesincelastupdate(self, SensorName: str) -> float:
+        """Time since the named sensor was last updated (seconds).
+
+        Args:
+            SensorName (str): Name of the sensor.
+
+        Returns:
+            Time in seconds since the sensor value was last updated.
+        """
+        return self._get("timesincelastupdate", SensorName=SensorName)
+
+    def refresh(self):
+        """Force an immediate re-read of all connected sensors."""
+        self._put("refresh")
+
+
 _component_classes = {
-    "telescope": Telescope,
     "dome": Dome,
     "camera": Camera,
     "filterwheel": FilterWheel,
@@ -2318,5 +2416,6 @@ _component_classes = {
     "rotator": Rotator,
     "switch": Switch,
     "safetymonitor": SafetyMonitor,
+    "observingconditions": ObservingConditions,
     "file": CameraFile,
 }
