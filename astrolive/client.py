@@ -345,8 +345,14 @@ class AstroLive:
                     pass
             if isinstance(child, Switch):
                 max_switch = child.component_options.get("max_switch", 0)
-                if max_switch == 0:
-                    max_switch = self.obs.telescope.switch.maxswitch()
+                if max_switch == 0 and children[child.sys_id].get("connected") is True:
+                    try:
+                        max_switch = self.obs.telescope.switch.maxswitch()
+                    except (RequestConnectionError, DeviceResponseError):
+                        _LOGGER.warning(
+                            "Could not query max_switch for %s while disconnected; using 0",
+                            child.sys_id,
+                        )
                 children[child.sys_id]["max_switch"] = max_switch
             children[child.sys_id]["comment"] = child.component_options.get("comment", "")
             children[child.sys_id]["friendly_name"] = child.component_options.get("friendly_name", "")
@@ -362,85 +368,84 @@ class AstroLive:
             if children[child].get("kind") != DEVICE_TYPE_OBSERVATORY:
                 _LOGGER.debug("Verifying a %s", children[child].get("kind"))
                 try:
-                    if children[child].get("connected") is True:
-                        _LOGGER.debug(
-                            "Verifying a %s which is %s",
-                            children[child].get("kind"),
-                            children[child].get("friendly_name"),
-                        )
-                        sys_id = child
-                        device_type = children[child].get("kind")
-                        device_friendly_name = children[child].get("friendly_name")
-                        device_functions = list(FUNCTIONS.get(device_type))
-                        update_interval = children[child].get("update_interval")
+                    _LOGGER.debug(
+                        "Verifying a %s which is %s",
+                        children[child].get("kind"),
+                        children[child].get("friendly_name"),
+                    )
+                    sys_id = child
+                    device_type = children[child].get("kind")
+                    device_friendly_name = children[child].get("friendly_name")
+                    device_functions = list(FUNCTIONS.get(device_type))
+                    update_interval = children[child].get("update_interval")
 
-                        if await self._query_thread_alive(sys_id) is not True:
-                            try:
-                                mqtt_connector = MqttConnector.create_connector(
-                                    device_type,
-                                    self._options,
-                                    publisher=self._mqtthandler,
-                                )
-                            except KeyError:
-                                pass
-                            except Exception as exc:
-                                traceback.print_exc(file=sys.stdout)
-                                _LOGGER.error(exc)
-
-                            # If device is of type switch enumerate the ports
-                            if device_type == DEVICE_TYPE_SWITCH:
-                                max_switch = children[child].get("max_switch")
-                                _LOGGER.info(
-                                    "Verifying %s has %d switches",
-                                    children[child].get("friendly_name"),
-                                    max_switch,
-                                )
-                                for port_id in range(0, max_switch):
-                                    device_functions.append(
-                                        [
-                                            TYPE_SWITCH,
-                                            "Switch " + str(port_id),
-                                            UNIT_OF_MEASUREMENT_NONE,
-                                            DEVICE_TYPE_SWITCH_ICON,
-                                            DEVICE_CLASS_SWITCH,
-                                            STATE_CLASS_NONE,
-                                        ]
-                                    )
-                                    device_functions.append(
-                                        [
-                                            TYPE_SENSOR,
-                                            "Switch Value " + str(port_id),
-                                            UNIT_OF_MEASUREMENT_NONE,
-                                            DEVICE_TYPE_SWITCH_ICON,
-                                            DEVICE_CLASS_NONE,
-                                            STATE_CLASS_NONE,
-                                        ]
-                                    )
-
-                            # Create entity configuration in mqtt
-                            await mqtt_connector.create_mqtt_config(
-                                sys_id,
+                    if await self._query_thread_alive(sys_id) is not True:
+                        try:
+                            mqtt_connector = MqttConnector.create_connector(
                                 device_type,
-                                device_friendly_name,
-                                device_functions,
+                                self._options,
+                                publisher=self._mqtthandler,
                             )
+                        except KeyError:
+                            pass
+                        except Exception as exc:
+                            traceback.print_exc(file=sys.stdout)
+                            _LOGGER.error(exc)
 
-                            # Create thread
-                            _LOGGER.info("Creating thread %s", sys_id)
-                            self._threads.append(
-                                Thread(
-                                    target=asyncio.run,
-                                    args=(
-                                        mqtt_connector.publish_loop(
-                                            sys_id,
-                                            self.obs.component_by_absolute_sys_id(sys_id),
-                                            device_type,
-                                            update_interval,
-                                        ),
-                                    ),
-                                    name=sys_id,
-                                )
+                        # If device is of type switch enumerate the ports
+                        if device_type == DEVICE_TYPE_SWITCH:
+                            max_switch = children[child].get("max_switch")
+                            _LOGGER.info(
+                                "Verifying %s has %d switches",
+                                children[child].get("friendly_name"),
+                                max_switch,
                             )
+                            for port_id in range(0, max_switch):
+                                device_functions.append(
+                                    [
+                                        TYPE_SWITCH,
+                                        "Switch " + str(port_id),
+                                        UNIT_OF_MEASUREMENT_NONE,
+                                        DEVICE_TYPE_SWITCH_ICON,
+                                        DEVICE_CLASS_SWITCH,
+                                        STATE_CLASS_NONE,
+                                    ]
+                                )
+                                device_functions.append(
+                                    [
+                                        TYPE_SENSOR,
+                                        "Switch Value " + str(port_id),
+                                        UNIT_OF_MEASUREMENT_NONE,
+                                        DEVICE_TYPE_SWITCH_ICON,
+                                        DEVICE_CLASS_NONE,
+                                        STATE_CLASS_NONE,
+                                    ]
+                                )
+
+                        # Create entity configuration in mqtt
+                        await mqtt_connector.create_mqtt_config(
+                            sys_id,
+                            device_type,
+                            device_friendly_name,
+                            device_functions,
+                        )
+
+                        # Create thread
+                        _LOGGER.info("Creating thread %s", sys_id)
+                        self._threads.append(
+                            Thread(
+                                target=asyncio.run,
+                                args=(
+                                    mqtt_connector.publish_loop(
+                                        sys_id,
+                                        self.obs.component_by_absolute_sys_id(sys_id),
+                                        device_type,
+                                        update_interval,
+                                    ),
+                                ),
+                                name=sys_id,
+                            )
+                        )
                 except AttributeError:  # c is not a Device (so lacks those methods)
                     pass
                 except (

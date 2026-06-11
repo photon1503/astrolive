@@ -197,6 +197,31 @@ class MqttConnector(Connector):
 
         return None
 
+    async def _ensure_connected(self, sys_id, device, topic) -> bool:
+        """Ensure device connection is active.
+
+        Tries to connect disconnected devices before each publish cycle.
+        """
+
+        try:
+            if device.connected():
+                await self._publisher.publish_mqtt(topic + "lwt", "ON")
+                return True
+
+            _LOGGER.info("%s: Disconnected, attempting to connect", sys_id)
+            device.connected(True)
+
+            if device.connected():
+                _LOGGER.info("%s: Connected", sys_id)
+                await self._publisher.publish_mqtt(topic + "lwt", "ON")
+                return True
+
+            await self._publisher.publish_mqtt(topic + "lwt", "OFF")
+            return False
+        except (RequestConnectionError, DeviceResponseError):
+            await self._publisher.publish_mqtt(topic + "lwt", "OFF")
+            return False
+
 
 class Telescope(MqttConnector):
     """MQTT Device Telescope"""
@@ -240,8 +265,7 @@ class Telescope(MqttConnector):
         _LOGGER.debug("%s: Update", sys_id)
         topic = "astrolive/" + device_type + "/" + sys_id_ + "/"
         try:
-            if device.connected():
-                await self._publisher.publish_mqtt(topic + "lwt", "ON")
+            if await self._ensure_connected(sys_id, device, topic):
                 state = {
                     "at_home": "on" if device.athome() else "off",
                     "at_park": "on" if device.atpark() else "off",
@@ -268,8 +292,6 @@ class Telescope(MqttConnector):
                         _LOGGER.debug("%s: %s not supported by this telescope", sys_id, _key)
                         state[_key] = None
                 await self._publisher.publish_mqtt(topic + "state", json.dumps(state))
-            else:
-                await self._publisher.publish_mqtt(topic + "lwt", "OFF")
         except (RequestConnectionError, DeviceResponseError) as rcedre:
             await self._publisher.publish_mqtt(topic + "lwt", "OFF")
             _LOGGER.error("%s: Not connected", sys_id)
@@ -318,8 +340,7 @@ class Camera(MqttConnector):
         _LOGGER.debug("%s: Update", sys_id)
         topic = "astrolive/" + device_type + "/" + sys_id_ + "/"
         try:
-            if device.connected():
-                await self._publisher.publish_mqtt(topic + "lwt", "ON")
+            if await self._ensure_connected(sys_id, device, topic):
                 state = {
                     "camera_state": CAMERA_STATES[device.camerastate()],
                     "ccd_temperature": device.ccdtemperature(),
@@ -386,8 +407,6 @@ class Camera(MqttConnector):
 
                         await self._publisher.publish_mqtt(topic + "screen", image_bytearray)
                 await self._publisher.publish_mqtt(topic + "state", json.dumps(state))
-            else:
-                await self._publisher.publish_mqtt(topic + "lwt", "OFF")
         except (RequestConnectionError, DeviceResponseError) as rcedre:
             await self._publisher.publish_mqtt(topic + "lwt", "OFF")
             _LOGGER.error("%s: Not connected", sys_id)
@@ -626,8 +645,7 @@ class Focuser(MqttConnector):
         _LOGGER.debug("%s: Update", sys_id)
         topic = "astrolive/" + device_type + "/" + sys_id_ + "/"
         try:
-            if device.connected():
-                await self._publisher.publish_mqtt(topic + "lwt", "ON")
+            if await self._ensure_connected(sys_id, device, topic):
                 state = {
                     "position": device.position(),
                     "is_moving": "on" if device.ismoving() else "off",
@@ -638,8 +656,6 @@ class Focuser(MqttConnector):
                     _LOGGER.debug("%s: temperature not supported by this focuser", sys_id)
                     state["temperature"] = None
                 await self._publisher.publish_mqtt(topic + "state", json.dumps(state))
-            else:
-                await self._publisher.publish_mqtt(topic + "lwt", "OFF")
         except (RequestConnectionError, DeviceResponseError) as rcedre:
             await self._publisher.publish_mqtt(topic + "lwt", "OFF")
             _LOGGER.error("%s: Not connected", sys_id)
@@ -688,8 +704,7 @@ class Switch(MqttConnector):
         _LOGGER.debug("%s: Update", sys_id)
         topic = "astrolive/" + device_type + "/" + sys_id_ + "/"
         try:
-            if device.connected():
-                await self._publisher.publish_mqtt(topic + "lwt", "ON")
+            if await self._ensure_connected(sys_id, device, topic):
                 max_switch = device.maxswitch()
                 state = {"max_switch": max_switch}
                 for switch_id in range(0, max_switch):
@@ -704,8 +719,6 @@ class Switch(MqttConnector):
                     ):  # connection to telescope failed
                         pass
                 await self._publisher.publish_mqtt(topic + "state", json.dumps(state))
-            else:
-                await self._publisher.publish_mqtt(topic + "lwt", "OFF")
         except (RequestConnectionError, DeviceResponseError) as rcedre:
             await self._publisher.publish_mqtt(topic + "lwt", "OFF")
             _LOGGER.error("%s: Not connected", sys_id)
@@ -754,16 +767,13 @@ class FilterWheel(MqttConnector):
         _LOGGER.debug("%s: Update", sys_id)
         topic = "astrolive/" + device_type + "/" + sys_id_ + "/"
         try:
-            if device.connected() and len(device.names()) > 0:
-                await self._publisher.publish_mqtt(topic + "lwt", "ON")
+            if await self._ensure_connected(sys_id, device, topic) and len(device.names()) > 0:
                 state = {
                     "position": device.position(),
                     "names": device.names(),
                     "current": device.names()[device.position()],
                 }
                 await self._publisher.publish_mqtt(topic + "state", json.dumps(state))
-            else:
-                await self._publisher.publish_mqtt(topic + "lwt", "OFF")
         except (RequestConnectionError, DeviceResponseError) as rcedre:
             await self._publisher.publish_mqtt(topic + "lwt", "OFF")
             _LOGGER.error("%s: Not connected", sys_id)
@@ -812,8 +822,7 @@ class Dome(MqttConnector):
         _LOGGER.debug("%s: Update", sys_id)
         topic = "astrolive/" + device_type + "/" + sys_id_ + "/"
         try:
-            if device.connected():
-                await self._publisher.publish_mqtt(topic + "lwt", "ON")
+            if await self._ensure_connected(sys_id, device, topic):
                 state = {
                     "at_home": "on" if device.athome() else "off",
                     "at_park": "on" if device.atpark() else "off",
@@ -830,8 +839,6 @@ class Dome(MqttConnector):
                     _LOGGER.debug("%s: azimuth not supported by this dome", sys_id)
                     state["azimuth"] = None
                 await self._publisher.publish_mqtt(topic + "state", json.dumps(state))
-            else:
-                await self._publisher.publish_mqtt(topic + "lwt", "OFF")
         except (RequestConnectionError, DeviceResponseError) as rcedre:
             await self._publisher.publish_mqtt(topic + "lwt", "OFF")
             _LOGGER.error("%s: Not connected", sys_id)
@@ -880,8 +887,7 @@ class Rotator(MqttConnector):
         _LOGGER.debug("%s: Update", sys_id)
         topic = "astrolive/" + device_type + "/" + sys_id_ + "/"
         try:
-            if device.connected():
-                await self._publisher.publish_mqtt(topic + "lwt", "ON")
+            if await self._ensure_connected(sys_id, device, topic):
                 state = {
                     "position": device.position(),
                 }
@@ -891,8 +897,6 @@ class Rotator(MqttConnector):
                     _LOGGER.debug("%s: mechanicalposition not supported by this rotator", sys_id)
                     state["mechanicalposition"] = None
                 await self._publisher.publish_mqtt(topic + "state", json.dumps(state))
-            else:
-                await self._publisher.publish_mqtt(topic + "lwt", "OFF")
         except (RequestConnectionError, DeviceResponseError) as rcedre:
             await self._publisher.publish_mqtt(topic + "lwt", "OFF")
             _LOGGER.error("%s: Not connected", sys_id)
@@ -941,14 +945,11 @@ class SafetyMonitor(MqttConnector):
         _LOGGER.debug("%s: Update", sys_id)
         topic = "astrolive/" + device_type + "/" + sys_id_ + "/"
         try:
-            if device.connected():
-                await self._publisher.publish_mqtt(topic + "lwt", "ON")
+            if await self._ensure_connected(sys_id, device, topic):
                 state = {
                     "issafe": device.issafe(),
                 }
                 await self._publisher.publish_mqtt(topic + "state", json.dumps(state))
-            else:
-                await self._publisher.publish_mqtt(topic + "lwt", "OFF")
         except (RequestConnectionError, DeviceResponseError) as rcedre:
             await self._publisher.publish_mqtt(topic + "lwt", "OFF")
             _LOGGER.error("%s: Not connected", sys_id)
@@ -998,8 +999,7 @@ class ObservingConditions(MqttConnector):
         _LOGGER.debug("%s: Update", sys_id)
         topic = "astrolive/" + device_type + "/" + sys_id_ + "/"
         try:
-            if device.connected():
-                await self._publisher.publish_mqtt(topic + "lwt", "ON")
+            if await self._ensure_connected(sys_id, device, topic):
                 state = {}
                 for prop in self._OPTIONAL_PROPERTIES:
                     try:
@@ -1009,8 +1009,6 @@ class ObservingConditions(MqttConnector):
                         _LOGGER.debug("%s: %s not supported by this device", sys_id, prop)
                         state[prop] = None
                 await self._publisher.publish_mqtt(topic + "state", json.dumps(state))
-            else:
-                await self._publisher.publish_mqtt(topic + "lwt", "OFF")
         except (RequestConnectionError, DeviceResponseError) as rcedre:
             await self._publisher.publish_mqtt(topic + "lwt", "OFF")
             _LOGGER.error("%s: Not connected", sys_id)
