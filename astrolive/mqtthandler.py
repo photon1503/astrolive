@@ -1,12 +1,12 @@
 """Handler for MQTT communication"""
 
+import asyncio
 import json
 import logging
 import queue
 import random
 import ssl
 import string
-from time import sleep
 from typing import Callable, Iterable, Tuple
 
 import paho.mqtt.client as mqtt
@@ -242,7 +242,7 @@ class MqttHandler(Connector):
                     # )
                     if response[0]:
                         _LOGGER.warning("MQTT failure: %s", response[0])
-            sleep(0.1)
+            await asyncio.sleep(0.1)
 
 
 class MqttListener(Connector):

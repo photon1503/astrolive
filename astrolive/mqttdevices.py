@@ -220,8 +220,8 @@ class Telescope(MqttConnector):
             except KeyboardInterrupt:
                 break
             except (RequestConnectionError, DeviceResponseError):
-                _LOGGER.error("Stopping thread for %s", sys_id)
-                break
+                _LOGGER.warning("Endpoint unavailable for %s, retrying in %ds", sys_id, interval)
+                await asyncio.sleep(interval)
         _LOGGER.warning("Thread %s exits", sys_id)
         return
 
@@ -298,8 +298,8 @@ class Camera(MqttConnector):
             except KeyboardInterrupt:
                 break
             except (RequestConnectionError, DeviceResponseError):
-                _LOGGER.error("Stopping thread for %s", sys_id)
-                break
+                _LOGGER.warning("Endpoint unavailable for %s, retrying in %ds", sys_id, interval)
+                await asyncio.sleep(interval)
         _LOGGER.warning("Thread %s exits", sys_id)
         return
 
@@ -416,8 +416,8 @@ class CameraFile(MqttConnector):
             except KeyboardInterrupt:
                 break
             except (RequestConnectionError, DeviceResponseError):
-                _LOGGER.error("Stopping thread for %s", sys_id)
-                break
+                _LOGGER.warning("Endpoint unavailable for %s, retrying in %ds", sys_id, interval)
+                await asyncio.sleep(interval)
         _LOGGER.warning("Thread %s exits", sys_id)
         return
 
@@ -606,8 +606,8 @@ class Focuser(MqttConnector):
             except KeyboardInterrupt:
                 break
             except (RequestConnectionError, DeviceResponseError):
-                _LOGGER.error("Stopping thread for %s", sys_id)
-                break
+                _LOGGER.warning("Endpoint unavailable for %s, retrying in %ds", sys_id, interval)
+                await asyncio.sleep(interval)
         _LOGGER.warning("Thread %s exits", sys_id)
         return
 
@@ -663,8 +663,8 @@ class Switch(MqttConnector):
             except KeyboardInterrupt:
                 break
             except (RequestConnectionError, DeviceResponseError):
-                _LOGGER.error("Stopping thread for %s", sys_id)
-                break
+                _LOGGER.warning("Endpoint unavailable for %s, retrying in %ds", sys_id, interval)
+                await asyncio.sleep(interval)
         _LOGGER.warning("Thread %s exits", sys_id)
         return
 
@@ -729,8 +729,8 @@ class FilterWheel(MqttConnector):
             except KeyboardInterrupt:
                 break
             except (RequestConnectionError, DeviceResponseError):
-                _LOGGER.error("Stopping thread for %s", sys_id)
-                break
+                _LOGGER.warning("Endpoint unavailable for %s, retrying in %ds", sys_id, interval)
+                await asyncio.sleep(interval)
         _LOGGER.warning("Thread %s exits", sys_id)
         return
 
@@ -787,8 +787,8 @@ class Dome(MqttConnector):
             except KeyboardInterrupt:
                 break
             except (RequestConnectionError, DeviceResponseError):
-                _LOGGER.error("Stopping thread for %s", sys_id)
-                break
+                _LOGGER.warning("Endpoint unavailable for %s, retrying in %ds", sys_id, interval)
+                await asyncio.sleep(interval)
         _LOGGER.warning("Thread %s exits", sys_id)
         return
 
@@ -855,8 +855,8 @@ class Rotator(MqttConnector):
             except KeyboardInterrupt:
                 break
             except (RequestConnectionError, DeviceResponseError):
-                _LOGGER.error("Stopping thread for %s", sys_id)
-                break
+                _LOGGER.warning("Endpoint unavailable for %s, retrying in %ds", sys_id, interval)
+                await asyncio.sleep(interval)
         _LOGGER.warning("Thread %s exits", sys_id)
         return
 
@@ -916,8 +916,8 @@ class SafetyMonitor(MqttConnector):
             except KeyboardInterrupt:
                 break
             except (RequestConnectionError, DeviceResponseError):
-                _LOGGER.error("Stopping thread for %s", sys_id)
-                break
+                _LOGGER.warning("Endpoint unavailable for %s, retrying in %ds", sys_id, interval)
+                await asyncio.sleep(interval)
         _LOGGER.warning("Thread %s exits", sys_id)
         return
 

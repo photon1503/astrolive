@@ -1,4 +1,4 @@
-# [0.8](https://github.com/mawinkler/astrolive/compare/v0.7...v0.8) (2026-06-10)
+# [0.9](https://github.com/mawinkler/astrolive/compare/v0.7...v0.9) (2026-06-11)
 
 ### Fixes
 
@@ -6,11 +6,17 @@
 - Fixed the same class of bug for telescope optional properties (`declinationrate`, `guideratedeclination`, `rightascensionrate`, `guideraterightascension`, `sideofpier`, `siteelevation`, `sitelatitude`, `sitelongitude`) and rotator `mechanicalposition`. Drivers that do not implement these no longer kill the device thread.
 - Fixed `CameraFile` accessing FITS header data after the `fits.open()` context manager had already closed the file handle.
 - Fixed `Camera._get_imagedata()` using a hardcoded Alpaca URL (`192.168.1.233:11111/camera/1`). Camera image requests now use the configured component endpoint and device number.
+- Fixed `sleep(30)` in the main supervisor loop using blocking `time.sleep()` inside `async def main()`, which stalled the entire asyncio event loop and prevented polling at the intervals configured per device in YAML.
+- Fixed `sleep(3)` thread-stagger delay in `client.py` `start_monitoring()` also using blocking `time.sleep()` inside an async method.
+- Fixed `sleep(0.1)` in `mqtthandler.py` `MqttHandler.looper()` using blocking `time.sleep()` inside an `async` function.
+- All nine device `publish_loop()` methods (`Telescope`, `Camera`, `CameraFile`, `Focuser`, `Switch`, `FilterWheel`, `Dome`, `Rotator`, `SafetyMonitor`) previously exited permanently on `RequestConnectionError` or `DeviceResponseError`. They now retry after `interval` seconds, surviving transient endpoint outages without requiring the supervisor to recreate threads.
 
 ### Changes
 
-- Replaced blocking `time.sleep()` with `await asyncio.sleep()` in all device `publish_loop()` methods, allowing the async event loop to remain responsive during polling intervals.
+- Replaced all blocking `time.sleep()` calls with `await asyncio.sleep()` throughout `run.py`, `client.py`, `mqtthandler.py`, and all device `publish_loop()` methods. Removed `from time import sleep` imports accordingly.
 - Replaced `sys.exit(0)` at the end of `publish_loop()` methods with a plain `return`.
+- Added `check_interval` property to `AstroLive` client, read from `observatory.check_interval` in the YAML config (default: `10` seconds). The main supervisor loop now sleeps for this configurable interval instead of the previous hardcoded 30 seconds.
+- Downgraded log level for transient endpoint failures in `publish_loop()` from `ERROR` to `WARNING` to reflect that these are now retried rather than fatal.
 - Removed duplicate `logging.basicConfig()` call in `client.py` (superseded by the one in `run.py`).
 - Removed unused `from tokenize import String` import in `client.py`.
 - Added recursive config validation for endpoint `address` values (must be valid `http://` or `https://` URLs).

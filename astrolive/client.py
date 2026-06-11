@@ -6,7 +6,6 @@ import os
 import sys
 import traceback
 from threading import Thread
-from time import sleep
 from typing import Optional
 
 import pandas as pd
@@ -189,6 +188,11 @@ class AstroLive:
 
         return f"\033[{code}m"
 
+    @property
+    def check_interval(self) -> int:
+        """Interval in seconds between supervisor loop iterations."""
+        return int(self._options.get("check_interval", 10))
+
     # Public functions
     async def link_observatory(
         self,
@@ -232,7 +236,7 @@ class AstroLive:
                 except KeyboardInterrupt:
                     break
 
-                sleep(3)
+                await asyncio.sleep(3)
 
         return None
 

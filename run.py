@@ -3,7 +3,6 @@ import asyncio
 import logging
 import sys
 import time
-from time import sleep
 
 from astrolive.client import AstroLive
 from astrolive.errors import AstroLiveError
@@ -52,7 +51,7 @@ async def main() -> None:
         while True:
             await al.start_monitoring()
             await al.health_check()
-            sleep(30)
+            await asyncio.sleep(al.check_interval)
             await al.link_observatory()
     except AstroLiveError as err:
         _LOGGER.error(err)
