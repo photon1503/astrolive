@@ -334,6 +334,17 @@ class AstroLive:
                 try:  # connection may fail, Component may not be a Device
                     children[child.sys_id]["name"] = child.name()
                     children[child.sys_id]["connected"] = child.connected()
+
+                    if children[child.sys_id]["connected"] is False:
+                        _LOGGER.info("%s: Disconnected at startup, attempting to connect", child.sys_id)
+                        try:
+                            child.connected(True)
+                            children[child.sys_id]["connected"] = child.connected()
+                            if children[child.sys_id]["connected"] is True:
+                                _LOGGER.info("%s: Connected", child.sys_id)
+                        except (RequestConnectionError, DeviceResponseError):
+                            _LOGGER.warning("%s: Startup connect attempt failed", child.sys_id)
+
                     children[child.sys_id]["description"] = child.description()
                     children[child.sys_id]["driverversion"] = child.driverversion()
                 except AttributeError:  # child is not a Device (so lacks those methods)
