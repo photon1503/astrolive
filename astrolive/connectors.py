@@ -13,6 +13,7 @@ from .errors import (
     AlpacaHttp400Error,
     AlpacaHttp500Error,
     AlpacaHttpError,
+    DeviceResponseError,
     RequestConnectionError,
 )
 
@@ -126,7 +127,17 @@ class AlpacaConnector(Connector):
             _LOGGER.error(f"Connection to {url} failed")
             raise RequestConnectionError from exc
 
-        return response.json()["Value"]
+        try:
+            response_json = response.json()
+        except ValueError as exc:
+            _LOGGER.error("Invalid JSON response from %s", url)
+            raise DeviceResponseError(f"Invalid JSON response from {url}") from exc
+
+        if "Value" not in response_json:
+            _LOGGER.error("Missing Value in Alpaca response from %s: %s", url, response_json)
+            raise DeviceResponseError(f"Missing Value in Alpaca response from {url}")
+
+        return response_json["Value"]
 
     def put(self, component: "Component", variable: str, **data):
         """Send an HTTP PUT request to an Alpaca server and check response for errors.
@@ -155,7 +166,11 @@ class AlpacaConnector(Connector):
             # _LOGGER.error('Timeout has been raised.')
             raise RequestConnectionError from exc
 
-        return response.json()
+        try:
+            return response.json()
+        except ValueError as exc:
+            _LOGGER.error("Invalid JSON response from %s", url)
+            raise DeviceResponseError(f"Invalid JSON response from {url}") from exc
 
     def _base_data_for_request(self):
         """Define the base data with cliend id and session id"""
@@ -196,10 +211,21 @@ class AlpacaConnector(Connector):
             _LOGGER.error("Alpaca HTTP 500 error, %s for %s", response.text, response.url)
             raise AlpacaHttp500Error(response.text)
 
-        j = response.json()
-        if j["ErrorNumber"] != 0:
-            _LOGGER.error("Alpaca error, code=%d, msg=%s", j["ErrorNumber"], j["ErrorMessage"])
-            raise AlpacaError(j["ErrorNumber"], j["ErrorMessage"])
+        try:
+            j = response.json()
+        except ValueError as exc:
+            _LOGGER.error("Invalid JSON response for %s", response.url)
+            raise DeviceResponseError(f"Invalid JSON response for {response.url}") from exc
+
+        error_number = j.get("ErrorNumber")
+        error_message = j.get("ErrorMessage", "")
+        if error_number is None:
+            _LOGGER.error("Malformed Alpaca response for %s: %s", response.url, j)
+            raise DeviceResponseError(f"Malformed Alpaca response for {response.url}")
+
+        if error_number != 0:
+            _LOGGER.error("Alpaca error, code=%d, msg=%s", error_number, error_message)
+            raise AlpacaError(error_number, error_message)
 
 
 _connector_classes = {"alpaca": AlpacaConnector}
