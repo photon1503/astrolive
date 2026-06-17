@@ -992,6 +992,20 @@ class ObservingConditions(MqttConnector):
         "windspeed",
     )
 
+    # Keep legacy ASCOM-style keys (e.g. "skybrightness") and also publish
+    # Home Assistant-friendly snake_case aliases (e.g. "sky_brightness").
+    _HA_KEY_ALIASES = {
+        "cloudcover": "cloud_cover",
+        "dewpoint": "dew_point",
+        "rainrate": "rain_rate",
+        "skybrightness": "sky_brightness",
+        "skyquality": "sky_quality",
+        "skytemperature": "sky_temperature",
+        "winddirection": "wind_direction",
+        "windgust": "wind_gust",
+        "windspeed": "wind_speed",
+    }
+
     async def publish_loop(self, sys_id, device, device_type, interval):
         start = time.time()
         while True:
@@ -1018,10 +1032,17 @@ class ObservingConditions(MqttConnector):
                 for prop in self._OPTIONAL_PROPERTIES:
                     try:
                         value = getattr(device, prop)()
-                        state[prop] = round(value, 3) if isinstance(value, float) else value
+                        state_value = round(value, 3) if isinstance(value, float) else value
+                        state[prop] = state_value
+                        alias = self._HA_KEY_ALIASES.get(prop)
+                        if alias is not None:
+                            state[alias] = state_value
                     except AlpacaError:
                         _LOGGER.debug("%s: %s not supported by this device", sys_id, prop)
                         state[prop] = None
+                        alias = self._HA_KEY_ALIASES.get(prop)
+                        if alias is not None:
+                            state[alias] = None
                 await self._publisher.publish_mqtt(topic + "state", json.dumps(state))
         except (RequestConnectionError, DeviceResponseError) as rcedre:
             await self._publisher.publish_mqtt(topic + "lwt", "OFF")
