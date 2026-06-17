@@ -1039,6 +1039,8 @@ class ObservingConditions(MqttConnector):
         "windspeed",
     )
 
+    _NUMERIC_PROPERTIES = frozenset(_OPTIONAL_PROPERTIES)
+
     # Keep legacy ASCOM-style keys (e.g. "skybrightness") and also publish
     # Home Assistant-friendly snake_case aliases (e.g. "sky_brightness").
     _HA_KEY_ALIASES = {
@@ -1079,7 +1081,16 @@ class ObservingConditions(MqttConnector):
                 for prop in self._OPTIONAL_PROPERTIES:
                     try:
                         value = getattr(device, prop)()
-                        state_value = round(value, 3) if isinstance(value, float) else value
+                        state_value = value
+                        if prop in self._NUMERIC_PROPERTIES and isinstance(value, str):
+                            # Some drivers return numeric readings as strings.
+                            value_normalized = value.strip().replace(",", ".")
+                            try:
+                                state_value = float(value_normalized)
+                            except ValueError:
+                                state_value = value
+                        if isinstance(state_value, float):
+                            state_value = round(state_value, 3)
                         state[prop] = state_value
                         alias = self._HA_KEY_ALIASES.get(prop)
                         if alias is not None:
