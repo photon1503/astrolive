@@ -986,7 +986,6 @@ class ObservingConditions(MqttConnector):
         "skybrightness",
         "skyquality",
         "skytemperature",
-        "stardistance",
         "temperature",
         "winddirection",
         "windgust",

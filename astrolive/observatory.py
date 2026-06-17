@@ -2361,10 +2361,6 @@ class ObservingConditions(Device):
         """Sky temperature (°C)."""
         return self._get("skytemperature")
 
-    def stardistance(self) -> float:
-        """Distance to the nearest star (arc seconds)."""
-        return self._get("stardistance")
-
     def temperature(self) -> float:
         """Ambient temperature (°C)."""
         return self._get("temperature")
