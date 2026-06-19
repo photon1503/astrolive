@@ -422,16 +422,25 @@ class AstroLive:
                     # If device is of type switch enumerate the ports
                     if device_type == DEVICE_TYPE_SWITCH:
                         max_switch = int(children[child].get("max_switch", 0) or 0)
+                        switch_component = self.obs.component_by_absolute_sys_id(sys_id)
                         _LOGGER.info(
                             "Verifying %s has %s switches",
                             children[child].get("friendly_name"),
                             max_switch,
                         )
                         for port_id in range(0, max_switch):
+                            switch_name = "Switch " + str(port_id)
+                            try:
+                                switch_description = switch_component.getswitchdescription(port_id)
+                                if switch_description and switch_description.strip() and switch_description != "leer":
+                                    switch_name = switch_description.strip()
+                            except (AttributeError, RequestConnectionError, DeviceResponseError):
+                                pass
+
                             device_functions.append(
                                 [
                                     TYPE_SWITCH,
-                                    "Switch " + str(port_id),
+                                    switch_name,
                                     UNIT_OF_MEASUREMENT_NONE,
                                     DEVICE_TYPE_SWITCH_ICON,
                                     DEVICE_CLASS_SWITCH,
@@ -448,16 +457,6 @@ class AstroLive:
                                     STATE_CLASS_NONE,
                                 ]
                             )
-                            device_functions.append(
-                                [
-                                    TYPE_SENSOR,
-                                    "Switch Description " + str(port_id),
-                                    UNIT_OF_MEASUREMENT_NONE,
-                                    DEVICE_TYPE_SWITCH_ICON,
-                                    DEVICE_CLASS_NONE,
-                                    STATE_CLASS_NONE,
-                                ]
-                            )
 
                     if mqtt_connector is not None:
                         # Keep autodiscovery retained config refreshed so Home Assistant can recover entities.
@@ -467,6 +466,24 @@ class AstroLive:
                             device_friendly_name,
                             device_functions,
                         )
+
+                        if device_type == DEVICE_TYPE_SWITCH:
+                            # Remove legacy retained discovery for deprecated switch description entities.
+                            device_friendly_name_low = device_friendly_name.lower().replace(" ", "_")
+                            for port_id in range(0, int(children[child].get("max_switch", 0) or 0)):
+                                legacy_topic = (
+                                    "homeassistant/sensor/astrolive/"
+                                    + device_friendly_name_low
+                                    + "_switch_description_"
+                                    + str(port_id)
+                                    + "/config"
+                                )
+                                await mqtt_connector._publisher.publish_mqtt(
+                                    legacy_topic,
+                                    "",
+                                    qos=0,
+                                    retain=True,
+                                )
 
                         if await self._query_thread_alive(sys_id) is not True:
                             # Create thread
