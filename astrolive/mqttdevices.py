@@ -7,11 +7,20 @@ import logging
 import os
 import re
 import time
+                    if max_switch <= 0:
+                        cached = self._store.get(sys_id, {}).get("max_switch", 0)
+                        try:
+                            max_switch = int(cached)
+                        except (TypeError, ValueError):
+                            max_switch = 0
 from datetime import datetime, timezone
 from typing import Callable, Iterable, Tuple
 
 import cv2
 from astropy import units as u
+
+                if max_switch > 0:
+                    self._store[sys_id] = {"max_switch": max_switch}
 from astropy.coordinates import SkyCoord  # High-level coordinates
 from astropy.io import fits
 from cv2 import imencode
@@ -217,10 +226,15 @@ class MqttConnector(Connector):
             _LOGGER.info("%s: Disconnected, attempting to connect", sys_id)
             device.connected(True)
 
-            if device.connected():
-                _LOGGER.info("%s: Connected", sys_id)
-                await self._publisher.publish_mqtt(topic + "lwt", "ON")
-                return True
+            # Some ASCOM Remote / driver combinations need a short delay before
+            # Connected reflects the new state.
+            retries = 6
+            for _ in range(retries):
+                await asyncio.sleep(0.5)
+                if device.connected():
+                    _LOGGER.info("%s: Connected", sys_id)
+                    await self._publisher.publish_mqtt(topic + "lwt", "ON")
+                    return True
 
             await self._publisher.publish_mqtt(topic + "lwt", "OFF")
             return False

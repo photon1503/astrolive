@@ -70,6 +70,7 @@ class AstroLive:
         # Worker threads for mqtt publisher and device updates to mqtt
         self._threads = []
         self._tread_restarts = {}
+        self._switch_max_cache = {}
 
         return None
 
@@ -377,13 +378,20 @@ class AstroLive:
                     try:
                         max_switch = int(child.maxswitch())
                         _LOGGER.info("Detected %d switches for %s", max_switch, child.sys_id)
-                    except (TypeError, ValueError, RequestConnectionError, DeviceResponseError):
+                    except (TypeError, ValueError, RequestConnectionError, DeviceResponseError) as exc:
                         _LOGGER.warning(
-                            "Could not query max_switch for %s; using configured value %s",
+                            "Could not query max_switch for %s; using configured/cache value %s (%s)",
                             child.sys_id,
                             configured_max_switch,
+                            exc,
                         )
                         max_switch = int(configured_max_switch) if str(configured_max_switch).isdigit() else 0
+
+                if max_switch > 0:
+                    self._switch_max_cache[child.sys_id] = max_switch
+                elif child.sys_id in self._switch_max_cache:
+                    max_switch = int(self._switch_max_cache[child.sys_id])
+                    _LOGGER.warning("Using cached max_switch=%d for %s", max_switch, child.sys_id)
                 children[child.sys_id]["max_switch"] = max_switch
             children[child.sys_id]["comment"] = child.component_options.get("comment", "")
             children[child.sys_id]["friendly_name"] = child.component_options.get("friendly_name", "")
