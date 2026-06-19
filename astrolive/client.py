@@ -150,10 +150,10 @@ class AstroLive:
             if component.kind == DEVICE_TYPE_SWITCH:
                 switch_id = int(command["id"])
                 if command["command"] == STATE_OFF:
-                    component.setswitch(switch_id, False)
+                    component.setswitchvalue(switch_id, 0)
                     _LOGGER.info("Executed Switch turn off on %s", switch_id)
                 if command["command"] == STATE_ON:
-                    component.setswitch(switch_id, True)
+                    component.setswitchvalue(switch_id, 1)
                     _LOGGER.info("Executed Switch turn on on %s", switch_id)
         except RequestConnectionError:
             _LOGGER.error("Connection Error to %s", command["component"])
@@ -437,6 +437,16 @@ class AstroLive:
                                         STATE_CLASS_NONE,
                                     ]
                                 )
+                                    device_functions.append(
+                                        [
+                                            TYPE_SENSOR,
+                                            "Switch Description " + str(port_id),
+                                            UNIT_OF_MEASUREMENT_NONE,
+                                            DEVICE_TYPE_SWITCH_ICON,
+                                            DEVICE_CLASS_NONE,
+                                            STATE_CLASS_NONE,
+                                        ]
+                                    )
 
                         # Create entity configuration in mqtt
                         await mqtt_connector.create_mqtt_config(

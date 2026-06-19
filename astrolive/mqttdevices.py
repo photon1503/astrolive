@@ -708,15 +708,15 @@ class Switch(MqttConnector):
                 max_switch = device.maxswitch()
                 state = {"max_switch": max_switch}
                 for switch_id in range(0, max_switch):
-                    switch_state = None
                     switch_value = None
+                    switch_description = None
 
                     try:
-                        switch_state = device.getswitch(switch_id)
+                        switch_description = device.getswitchdescription(switch_id)
                     except AttributeError:  # c is not a Device (so lacks those methods)
                         pass
                     except (RequestConnectionError, DeviceResponseError):
-                        _LOGGER.debug("%s: getswitch(%d) unavailable", sys_id, switch_id)
+                        _LOGGER.debug("%s: getswitchdescription(%d) unavailable", sys_id, switch_id)
 
                     try:
                         switch_value = device.getswitchvalue(switch_id)
@@ -727,12 +727,10 @@ class Switch(MqttConnector):
 
                     if switch_value is not None:
                         state["switch_value_" + str(switch_id)] = switch_value
-
-                    if switch_state is not None:
-                        state["switch_" + str(switch_id)] = "on" if switch_state else "off"
-                    elif switch_value is not None:
-                        # Some switch drivers do not implement getswitch() but still expose getswitchvalue().
                         state["switch_" + str(switch_id)] = "on" if float(switch_value) > 0 else "off"
+
+                    if switch_description is not None:
+                        state["switch_description_" + str(switch_id)] = switch_description
                 await self._publisher.publish_mqtt(topic + "state", json.dumps(state))
         except (RequestConnectionError, DeviceResponseError) as rcedre:
             await self._publisher.publish_mqtt(topic + "lwt", "OFF")
