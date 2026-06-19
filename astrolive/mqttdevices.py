@@ -5,6 +5,7 @@ import glob
 import json
 import logging
 import os
+import re
 import time
 from datetime import datetime, timezone
 from typing import Callable, Iterable, Tuple
@@ -126,6 +127,8 @@ class MqttConnector(Connector):
             # Generic for all devices one configuration topic for each functionality
             device_function_cap = function[SENSOR_NAME]
             device_function_low = function[SENSOR_NAME].lower().replace(" ", "_")
+            state_key = function[6] if len(function) > 6 else device_function_low
+            topic_key = state_key if len(function) > 6 else re.sub(r"[^a-z0-9_]", "_", device_function_low)
 
             root_topic = (
                 "homeassistant/"
@@ -133,7 +136,7 @@ class MqttConnector(Connector):
                 + "/astrolive/"
                 + device_friendly_name_low
                 + "_"
-                + device_function_low
+                + topic_key
                 + "/"
             )
             config = {
@@ -147,8 +150,8 @@ class MqttConnector(Connector):
                 "payload_not_available": "OFF",
                 "payload_on": STATE_ON,
                 "payload_off": STATE_OFF,
-                "unique_id": device_type + "_" + sys_id_ + "_" + device_function_low,
-                "value_template": "{{ value_json." + device_function_low + " }}",
+                "unique_id": device_type + "_" + sys_id_ + "_" + topic_key,
+                "value_template": "{{ value_json." + state_key + " }}",
                 "device": {
                     "identifiers": [sys_id],
                     "name": "AstroLive " + device_friendly_name_cap,
@@ -163,12 +166,13 @@ class MqttConnector(Connector):
                 config["command_topic"] = ("astrolive/" + device_type + "/" + sys_id_ + "/cmd",)
 
             if function[SENSOR_DEVICE_CLASS] == DEVICE_CLASS_SWITCH:
+                switch_id = state_key.split("_")[-1] if state_key.startswith("switch_") else topic_key.split("_")[-1]
                 config["command_topic"] = (
-                    "astrolive/" + device_type + "/" + sys_id_ + "/set" + "_" + device_function_low
+                    "astrolive/" + device_type + "/" + sys_id_ + "/set_switch_" + str(switch_id)
                 )
                 # Subscribe to command topic of the switch
                 await self._publisher.subsribe_mqtt(
-                    "astrolive/" + device_type + "/" + sys_id_ + "/set" + "_" + device_function_low
+                    "astrolive/" + device_type + "/" + sys_id_ + "/set_switch_" + str(switch_id)
                 )
 
             await self._publisher.publish_mqtt(root_topic + "config", json.dumps(config), qos=0, retain=True)

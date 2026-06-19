@@ -445,6 +445,7 @@ class AstroLive:
                                     DEVICE_TYPE_SWITCH_ICON,
                                     DEVICE_CLASS_SWITCH,
                                     STATE_CLASS_NONE,
+                                    "switch_" + str(port_id),
                                 ]
                             )
                             device_functions.append(
@@ -455,6 +456,7 @@ class AstroLive:
                                     DEVICE_TYPE_SWITCH_ICON,
                                     DEVICE_CLASS_NONE,
                                     STATE_CLASS_NONE,
+                                    "switch_value_" + str(port_id),
                                 ]
                             )
 
