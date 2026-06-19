@@ -140,16 +140,17 @@ class MqttHandler(Connector):
         fail_command = False
         # Catch JSON decode errors here
         payload = message.payload.decode("utf-8")
+        payload_norm = payload.strip().lower()
         topic = message.topic
         command = {}
-        if payload in (STATE_ON, STATE_OFF):
+        if payload_norm in (STATE_ON, STATE_OFF):
             # Are we switching a switch?
             if "astrolive/switch/" in topic:
                 _LOGGER.info("On/Off command for a switch")
                 # dissecting astrolive/switch/obs_telescope_switch/set_switch_X
                 command["component"] = topic.split("/")[2].replace("_", ".")
                 command["id"] = topic.split("/")[3].split("_")[-1]
-                command["command"] = payload
+            command["command"] = payload_norm
         else:
             # Any other command
             try:
