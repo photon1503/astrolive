@@ -170,6 +170,8 @@ class MqttConnector(Connector):
                 config["command_topic"] = (
                     "astrolive/" + device_type + "/" + sys_id_ + "/set_switch_" + str(switch_id)
                 )
+                config["state_on"] = STATE_ON
+                config["state_off"] = STATE_OFF
                 # Subscribe to command topic of the switch
                 await self._publisher.subsribe_mqtt(
                     "astrolive/" + device_type + "/" + sys_id_ + "/set_switch_" + str(switch_id)

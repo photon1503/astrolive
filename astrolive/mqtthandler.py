@@ -5,6 +5,7 @@ import json
 import logging
 import queue
 import random
+import re
 import ssl
 import string
 from typing import Callable, Iterable, Tuple
@@ -143,14 +144,22 @@ class MqttHandler(Connector):
         payload_norm = payload.strip().lower()
         topic = message.topic
         command = {}
-        if payload_norm in (STATE_ON, STATE_OFF):
+        if payload_norm in (STATE_ON, STATE_OFF, "1", "0", "true", "false"):
             # Are we switching a switch?
             if "astrolive/switch/" in topic:
                 _LOGGER.info("On/Off command for a switch")
                 # dissecting astrolive/switch/obs_telescope_switch/set_switch_X
                 command["component"] = topic.split("/")[2].replace("_", ".")
-                command["id"] = topic.split("/")[3].split("_")[-1]
-            command["command"] = payload_norm
+                match = re.search(r"/set_switch_(\d+)$", topic)
+                if match:
+                    command["id"] = match.group(1)
+                else:
+                    fail_command = True
+                    _LOGGER.error("Invalid switch command topic format: %s", topic)
+
+                command["command"] = STATE_ON if payload_norm in ("1", "true", STATE_ON) else STATE_OFF
+            else:
+                command["command"] = payload_norm
         else:
             # Any other command
             try:
