@@ -709,7 +709,19 @@ class Switch(MqttConnector):
         topic = "astrolive/" + device_type + "/" + sys_id_ + "/"
         try:
             if await self._ensure_connected(sys_id, device, topic):
-                max_switch = device.maxswitch()
+                try:
+                    max_switch = int(device.maxswitch())
+                except (TypeError, ValueError, RequestConnectionError, DeviceResponseError):
+                    configured_max = device.component_options.get("max_switch", 0)
+                    try:
+                        max_switch = int(configured_max)
+                    except (TypeError, ValueError):
+                        max_switch = 0
+                    _LOGGER.warning(
+                        "%s: Falling back to configured max_switch=%s",
+                        sys_id,
+                        max_switch,
+                    )
                 state = {"max_switch": max_switch}
                 for switch_id in range(0, max_switch):
                     switch_value = None

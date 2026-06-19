@@ -371,15 +371,19 @@ class AstroLive:
                     )
                     max_switch = 0
 
-                if max_switch <= 0 and children[child.sys_id].get("connected") is True:
+                if max_switch <= 0:
                     try:
+                        if children[child.sys_id].get("connected") is not True:
+                            child.connected(True)
                         max_switch = int(child.maxswitch())
+                        _LOGGER.info("Detected %d switches for %s", max_switch, child.sys_id)
                     except (TypeError, ValueError, RequestConnectionError, DeviceResponseError):
                         _LOGGER.warning(
-                            "Could not query max_switch for %s while disconnected; using 0",
+                            "Could not query max_switch for %s; using configured value %s",
                             child.sys_id,
+                            configured_max_switch,
                         )
-                        max_switch = 0
+                        max_switch = int(configured_max_switch) if str(configured_max_switch).isdigit() else 0
                 children[child.sys_id]["max_switch"] = max_switch
             children[child.sys_id]["comment"] = child.component_options.get("comment", "")
             children[child.sys_id]["friendly_name"] = child.component_options.get("friendly_name", "")
