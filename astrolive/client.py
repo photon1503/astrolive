@@ -149,13 +149,15 @@ class AstroLive:
         try:
             if component.kind == DEVICE_TYPE_SWITCH:
                 switch_id = int(command["id"])
+                if not component.connected():
+                    component.connected(True)
                 if command["command"] == STATE_OFF:
                     component.setswitchvalue(switch_id, 0)
                     _LOGGER.info("Executed Switch turn off on %s", switch_id)
                 if command["command"] == STATE_ON:
                     component.setswitchvalue(switch_id, 1)
                     _LOGGER.info("Executed Switch turn on on %s", switch_id)
-        except RequestConnectionError:
+        except (RequestConnectionError, DeviceResponseError):
             _LOGGER.error("Connection Error to %s", command["component"])
         except (ValueError, TypeError) as exc:
             _LOGGER.error("Invalid switch command for %s: %s", command.get("component"), exc)

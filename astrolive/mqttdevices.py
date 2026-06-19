@@ -710,46 +710,58 @@ class Switch(MqttConnector):
         _LOGGER.debug("%s: Update", sys_id)
         topic = "astrolive/" + device_type + "/" + sys_id_ + "/"
         try:
-            if await self._ensure_connected(sys_id, device, topic):
+            connected = False
+            try:
+                if not device.connected():
+                    _LOGGER.info("%s: Disconnected, forcing connect", sys_id)
+                    device.connected(True)
+                connected = bool(device.connected())
+            except (RequestConnectionError, DeviceResponseError):
+                _LOGGER.debug("%s: connected() unavailable, probing switch endpoints anyway", sys_id)
+
+            try:
+                max_switch = int(device.maxswitch())
+                connected = True
+            except (TypeError, ValueError, RequestConnectionError, DeviceResponseError):
+                configured_max = device.component_options.get("max_switch", 0)
                 try:
-                    max_switch = int(device.maxswitch())
-                except (TypeError, ValueError, RequestConnectionError, DeviceResponseError):
-                    configured_max = device.component_options.get("max_switch", 0)
-                    try:
-                        max_switch = int(configured_max)
-                    except (TypeError, ValueError):
-                        max_switch = 0
-                    _LOGGER.warning(
-                        "%s: Falling back to configured max_switch=%s",
-                        sys_id,
-                        max_switch,
-                    )
-                state = {"max_switch": max_switch}
-                for switch_id in range(0, max_switch):
-                    switch_value = None
-                    switch_description = None
+                    max_switch = int(configured_max)
+                except (TypeError, ValueError):
+                    max_switch = 0
+                _LOGGER.warning(
+                    "%s: Falling back to configured max_switch=%s",
+                    sys_id,
+                    max_switch,
+                )
 
-                    try:
-                        switch_description = device.getswitchdescription(switch_id)
-                    except AttributeError:  # c is not a Device (so lacks those methods)
-                        pass
-                    except (RequestConnectionError, DeviceResponseError):
-                        _LOGGER.debug("%s: getswitchdescription(%d) unavailable", sys_id, switch_id)
+            await self._publisher.publish_mqtt(topic + "lwt", "ON" if connected else "OFF")
 
-                    try:
-                        switch_value = device.getswitchvalue(switch_id)
-                    except AttributeError:  # c is not a Device (so lacks those methods)
-                        pass
-                    except (RequestConnectionError, DeviceResponseError):
-                        _LOGGER.debug("%s: getswitchvalue(%d) unavailable", sys_id, switch_id)
+            state = {"max_switch": max_switch}
+            for switch_id in range(0, max_switch):
+                switch_value = None
+                switch_description = None
 
-                    if switch_value is not None:
-                        state["switch_value_" + str(switch_id)] = switch_value
-                        state["switch_" + str(switch_id)] = "on" if float(switch_value) > 0 else "off"
+                try:
+                    switch_description = device.getswitchdescription(switch_id)
+                except AttributeError:  # c is not a Device (so lacks those methods)
+                    pass
+                except (RequestConnectionError, DeviceResponseError):
+                    _LOGGER.debug("%s: getswitchdescription(%d) unavailable", sys_id, switch_id)
 
-                    if switch_description is not None:
-                        state["switch_description_" + str(switch_id)] = switch_description
-                await self._publisher.publish_mqtt(topic + "state", json.dumps(state))
+                try:
+                    switch_value = device.getswitchvalue(switch_id)
+                except AttributeError:  # c is not a Device (so lacks those methods)
+                    pass
+                except (RequestConnectionError, DeviceResponseError):
+                    _LOGGER.debug("%s: getswitchvalue(%d) unavailable", sys_id, switch_id)
+
+                if switch_value is not None:
+                    state["switch_value_" + str(switch_id)] = switch_value
+                    state["switch_" + str(switch_id)] = "on" if float(switch_value) > 0 else "off"
+
+                if switch_description is not None:
+                    state["switch_description_" + str(switch_id)] = switch_description
+            await self._publisher.publish_mqtt(topic + "state", json.dumps(state))
         except (RequestConnectionError, DeviceResponseError) as rcedre:
             await self._publisher.publish_mqtt(topic + "lwt", "OFF")
             _LOGGER.error("%s: Not connected", sys_id)
