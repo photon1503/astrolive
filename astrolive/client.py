@@ -243,7 +243,7 @@ class AstroLive:
                 except KeyboardInterrupt:
                     break
 
-                await asyncio.sleep(3)
+                await asyncio.sleep(0.2)
 
         return None
 

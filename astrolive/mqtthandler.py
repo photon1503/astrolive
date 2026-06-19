@@ -158,6 +158,26 @@ class MqttHandler(Connector):
                     _LOGGER.error("Invalid switch command topic format: %s", topic)
 
                 command["command"] = STATE_ON if payload_norm in ("1", "true", STATE_ON) else STATE_OFF
+
+                # Publish optimistic switch state so HA UI does not bounce while hardware/state polling catches up.
+                if not fail_command:
+                    try:
+                        switch_id = int(command["id"])
+                        sys_id_ = topic.split("/")[2]
+                        optimistic_state = {
+                            "switch_" + str(switch_id): command["command"],
+                            "switch_value_" + str(switch_id): 1 if command["command"] == STATE_ON else 0,
+                        }
+                        self._messages.put(
+                            [
+                                "astrolive/switch/" + sys_id_ + "/state",
+                                json.dumps(optimistic_state),
+                                0,
+                                False,
+                            ]
+                        )
+                    except (TypeError, ValueError):
+                        pass
             else:
                 command["command"] = payload_norm
         else:
@@ -232,27 +252,35 @@ class MqttHandler(Connector):
         self._client.subscribe(topic)
 
     async def looper(self):
-        """Send a MQTT message one by one"""
+        """Send queued MQTT messages in batches."""
 
         while True:
-            if self._client.is_connected is False:
+            if not self._client.is_connected():
                 _LOGGER.warning("Reconnecting to MQTT Broker")
-                self._client.reconnect()
+                try:
+                    self._client.reconnect()
+                except Exception as exc:  # pylint: disable=broad-exception-caught
+                    _LOGGER.warning("MQTT reconnect failed: %s", exc)
+                    await asyncio.sleep(1)
+                    continue
 
-            # if len(self._messages) > 0:
-            if not self._messages.empty():
-                message = self._messages.get()
-                if message:
-                    response = self._client.publish(message[0], message[1], message[2], message[3])
-                    # _LOGGER.debug(
-                    #     "MQTT publish ratain: %s, %s, %s",
-                    #     message[0],
-                    #     message[2],
-                    #     message[3],
-                    # )
-                    if response[0]:
-                        _LOGGER.warning("MQTT failure: %s", response[0])
-            await asyncio.sleep(0.1)
+            published = 0
+            max_batch = 200
+            while published < max_batch:
+                try:
+                    message = self._messages.get_nowait()
+                except queue.Empty:
+                    break
+
+                response = self._client.publish(message[0], message[1], message[2], message[3])
+                if response[0]:
+                    _LOGGER.warning("MQTT failure: %s", response[0])
+                published += 1
+
+            if published == 0:
+                await asyncio.sleep(0.02)
+            else:
+                await asyncio.sleep(0)
 
 
 class MqttListener(Connector):
