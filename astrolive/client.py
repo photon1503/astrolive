@@ -360,15 +360,26 @@ class AstroLive:
                 ):  # connection to telescope failed
                     pass
             if isinstance(child, Switch):
-                max_switch = child.component_options.get("max_switch", 0)
-                if max_switch == 0 and children[child.sys_id].get("connected") is True:
+                configured_max_switch = child.component_options.get("max_switch", 0)
+                try:
+                    max_switch = int(configured_max_switch)
+                except (TypeError, ValueError):
+                    _LOGGER.warning(
+                        "Invalid max_switch value '%s' for %s; falling back to device query",
+                        configured_max_switch,
+                        child.sys_id,
+                    )
+                    max_switch = 0
+
+                if max_switch <= 0 and children[child.sys_id].get("connected") is True:
                     try:
-                        max_switch = self.obs.telescope.switch.maxswitch()
-                    except (RequestConnectionError, DeviceResponseError):
+                        max_switch = int(child.maxswitch())
+                    except (TypeError, ValueError, RequestConnectionError, DeviceResponseError):
                         _LOGGER.warning(
                             "Could not query max_switch for %s while disconnected; using 0",
                             child.sys_id,
                         )
+                        max_switch = 0
                 children[child.sys_id]["max_switch"] = max_switch
             children[child.sys_id]["comment"] = child.component_options.get("comment", "")
             children[child.sys_id]["friendly_name"] = child.component_options.get("friendly_name", "")
@@ -395,60 +406,61 @@ class AstroLive:
                     device_functions = list(FUNCTIONS.get(device_type))
                     update_interval = children[child].get("update_interval")
 
-                    if await self._query_thread_alive(sys_id) is not True:
-                        try:
-                            mqtt_connector = MqttConnector.create_connector(
-                                device_type,
-                                self._options,
-                                publisher=self._mqtthandler,
-                            )
-                        except KeyError:
-                            pass
-                        except Exception as exc:
-                            traceback.print_exc(file=sys.stdout)
-                            _LOGGER.error(exc)
+                    mqtt_connector = None
+                    try:
+                        mqtt_connector = MqttConnector.create_connector(
+                            device_type,
+                            self._options,
+                            publisher=self._mqtthandler,
+                        )
+                    except KeyError:
+                        pass
+                    except Exception as exc:
+                        traceback.print_exc(file=sys.stdout)
+                        _LOGGER.error(exc)
 
-                        # If device is of type switch enumerate the ports
-                        if device_type == DEVICE_TYPE_SWITCH:
-                            max_switch = children[child].get("max_switch")
-                            _LOGGER.info(
-                                "Verifying %s has %d switches",
-                                children[child].get("friendly_name"),
-                                max_switch,
+                    # If device is of type switch enumerate the ports
+                    if device_type == DEVICE_TYPE_SWITCH:
+                        max_switch = int(children[child].get("max_switch", 0) or 0)
+                        _LOGGER.info(
+                            "Verifying %s has %s switches",
+                            children[child].get("friendly_name"),
+                            max_switch,
+                        )
+                        for port_id in range(0, max_switch):
+                            device_functions.append(
+                                [
+                                    TYPE_SWITCH,
+                                    "Switch " + str(port_id),
+                                    UNIT_OF_MEASUREMENT_NONE,
+                                    DEVICE_TYPE_SWITCH_ICON,
+                                    DEVICE_CLASS_SWITCH,
+                                    STATE_CLASS_NONE,
+                                ]
                             )
-                            for port_id in range(0, max_switch):
-                                device_functions.append(
-                                    [
-                                        TYPE_SWITCH,
-                                        "Switch " + str(port_id),
-                                        UNIT_OF_MEASUREMENT_NONE,
-                                        DEVICE_TYPE_SWITCH_ICON,
-                                        DEVICE_CLASS_SWITCH,
-                                        STATE_CLASS_NONE,
-                                    ]
-                                )
-                                device_functions.append(
-                                    [
-                                        TYPE_SENSOR,
-                                        "Switch Value " + str(port_id),
-                                        UNIT_OF_MEASUREMENT_NONE,
-                                        DEVICE_TYPE_SWITCH_ICON,
-                                        DEVICE_CLASS_NONE,
-                                        STATE_CLASS_NONE,
-                                    ]
-                                )
-                                device_functions.append(
-                                    [
-                                        TYPE_SENSOR,
-                                        "Switch Description " + str(port_id),
-                                        UNIT_OF_MEASUREMENT_NONE,
-                                        DEVICE_TYPE_SWITCH_ICON,
-                                        DEVICE_CLASS_NONE,
-                                        STATE_CLASS_NONE,
-                                    ]
-                                )
+                            device_functions.append(
+                                [
+                                    TYPE_SENSOR,
+                                    "Switch Value " + str(port_id),
+                                    UNIT_OF_MEASUREMENT_NONE,
+                                    DEVICE_TYPE_SWITCH_ICON,
+                                    DEVICE_CLASS_NONE,
+                                    STATE_CLASS_NONE,
+                                ]
+                            )
+                            device_functions.append(
+                                [
+                                    TYPE_SENSOR,
+                                    "Switch Description " + str(port_id),
+                                    UNIT_OF_MEASUREMENT_NONE,
+                                    DEVICE_TYPE_SWITCH_ICON,
+                                    DEVICE_CLASS_NONE,
+                                    STATE_CLASS_NONE,
+                                ]
+                            )
 
-                        # Create entity configuration in mqtt
+                    if mqtt_connector is not None:
+                        # Keep autodiscovery retained config refreshed so Home Assistant can recover entities.
                         await mqtt_connector.create_mqtt_config(
                             sys_id,
                             device_type,
@@ -456,22 +468,23 @@ class AstroLive:
                             device_functions,
                         )
 
-                        # Create thread
-                        _LOGGER.info("Creating thread %s", sys_id)
-                        self._threads.append(
-                            Thread(
-                                target=asyncio.run,
-                                args=(
-                                    mqtt_connector.publish_loop(
-                                        sys_id,
-                                        self.obs.component_by_absolute_sys_id(sys_id),
-                                        device_type,
-                                        update_interval,
+                        if await self._query_thread_alive(sys_id) is not True:
+                            # Create thread
+                            _LOGGER.info("Creating thread %s", sys_id)
+                            self._threads.append(
+                                Thread(
+                                    target=asyncio.run,
+                                    args=(
+                                        mqtt_connector.publish_loop(
+                                            sys_id,
+                                            self.obs.component_by_absolute_sys_id(sys_id),
+                                            device_type,
+                                            update_interval,
+                                        ),
                                     ),
-                                ),
-                                name=sys_id,
+                                    name=sys_id,
+                                )
                             )
-                        )
                 except AttributeError:  # c is not a Device (so lacks those methods)
                     pass
                 except (
