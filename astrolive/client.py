@@ -437,16 +437,16 @@ class AstroLive:
                                         STATE_CLASS_NONE,
                                     ]
                                 )
-                                    device_functions.append(
-                                        [
-                                            TYPE_SENSOR,
-                                            "Switch Description " + str(port_id),
-                                            UNIT_OF_MEASUREMENT_NONE,
-                                            DEVICE_TYPE_SWITCH_ICON,
-                                            DEVICE_CLASS_NONE,
-                                            STATE_CLASS_NONE,
-                                        ]
-                                    )
+                                device_functions.append(
+                                    [
+                                        TYPE_SENSOR,
+                                        "Switch Description " + str(port_id),
+                                        UNIT_OF_MEASUREMENT_NONE,
+                                        DEVICE_TYPE_SWITCH_ICON,
+                                        DEVICE_CLASS_NONE,
+                                        STATE_CLASS_NONE,
+                                    ]
+                                )
 
                         # Create entity configuration in mqtt
                         await mqtt_connector.create_mqtt_config(
