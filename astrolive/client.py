@@ -373,8 +373,6 @@ class AstroLive:
 
                 if max_switch <= 0:
                     try:
-                        if children[child.sys_id].get("connected") is not True:
-                            child.connected(True)
                         max_switch = int(child.maxswitch())
                         _LOGGER.info("Detected %d switches for %s", max_switch, child.sys_id)
                     except (TypeError, ValueError, RequestConnectionError, DeviceResponseError):

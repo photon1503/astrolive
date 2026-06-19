@@ -5,7 +5,7 @@ import random
 from typing import Callable, Iterable, Tuple
 
 import requests
-from requests.exceptions import Timeout
+from requests.exceptions import RequestException, Timeout
 
 from .const import REQUESTS_TIMEOUTS
 from .errors import (
@@ -123,7 +123,7 @@ class AlpacaConnector(Connector):
         except Timeout as exc:
             # _LOGGER.error('Timeout has been raised.')
             raise RequestConnectionError from exc
-        except IOError as exc:
+        except (IOError, RequestException) as exc:
             _LOGGER.error(f"Connection to {url} failed")
             raise RequestConnectionError from exc
 
@@ -164,6 +164,9 @@ class AlpacaConnector(Connector):
             self.__check_error(response)
         except Timeout as exc:
             # _LOGGER.error('Timeout has been raised.')
+            raise RequestConnectionError from exc
+        except (IOError, RequestException) as exc:
+            _LOGGER.error(f"Connection to {url} failed")
             raise RequestConnectionError from exc
 
         try:
