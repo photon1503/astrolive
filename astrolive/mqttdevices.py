@@ -278,33 +278,45 @@ class Telescope(MqttConnector):
         _LOGGER.debug("%s: Update", sys_id)
         topic = "astrolive/" + device_type + "/" + sys_id_ + "/"
         try:
-            if await self._ensure_connected(sys_id, device, topic):
-                state = {
-                    "at_home": "on" if device.athome() else "off",
-                    "at_park": "on" if device.atpark() else "off",
-                    "altitude": round(device.altitude(), 3),
-                    "azimuth": round(device.azimuth(), 3),
-                    "declination": round(device.declination(), 3),
-                    "right_ascension": round(device.rightascension(), 3),
-                    "slewing": "on" if device.slewing() else "off",
-                }
-                _optional_telescope = {
-                    "declination_rate": lambda: round(device.declinationrate(), 3),
-                    "guiderate_declination": lambda: round(device.guideratedeclination(), 3),
-                    "right_ascension_rate": lambda: round(device.rightascensionrate(), 3),
-                    "guiderate_right_ascension": lambda: round(device.guideraterightascension(), 3),
-                    "side_of_pier": lambda: device.sideofpier(),
-                    "site_elevation": lambda: round(device.siteelevation(), 3),
-                    "site_latitude": lambda: round(device.sitelatitude(), 3),
-                    "site_longitude": lambda: round(device.sitelongitude(), 3),
-                }
-                for _key, _fn in _optional_telescope.items():
-                    try:
-                        state[_key] = _fn()
-                    except AlpacaError:
-                        _LOGGER.debug("%s: %s not supported by this telescope", sys_id, _key)
-                        state[_key] = None
-                await self._publisher.publish_mqtt(topic + "state", json.dumps(state))
+            connected = await self._ensure_connected(sys_id, device, topic)
+
+            if not connected:
+                # Some endpoints can serve telescope read data but do not support
+                # reliable connected()/connect semantics (e.g. ASCOM Remote edge cases).
+                try:
+                    _ = device.rightascension()
+                    connected = True
+                    await self._publisher.publish_mqtt(topic + "lwt", "ON")
+                    _LOGGER.warning("%s: Polling telescope without connect gate", sys_id)
+                except (RequestConnectionError, DeviceResponseError, AlpacaError):
+                    return
+
+            state = {
+                "at_home": "on" if device.athome() else "off",
+                "at_park": "on" if device.atpark() else "off",
+                "altitude": round(device.altitude(), 3),
+                "azimuth": round(device.azimuth(), 3),
+                "declination": round(device.declination(), 3),
+                "right_ascension": round(device.rightascension(), 3),
+                "slewing": "on" if device.slewing() else "off",
+            }
+            _optional_telescope = {
+                "declination_rate": lambda: round(device.declinationrate(), 3),
+                "guiderate_declination": lambda: round(device.guideratedeclination(), 3),
+                "right_ascension_rate": lambda: round(device.rightascensionrate(), 3),
+                "guiderate_right_ascension": lambda: round(device.guideraterightascension(), 3),
+                "side_of_pier": lambda: device.sideofpier(),
+                "site_elevation": lambda: round(device.siteelevation(), 3),
+                "site_latitude": lambda: round(device.sitelatitude(), 3),
+                "site_longitude": lambda: round(device.sitelongitude(), 3),
+            }
+            for _key, _fn in _optional_telescope.items():
+                try:
+                    state[_key] = _fn()
+                except AlpacaError:
+                    _LOGGER.debug("%s: %s not supported by this telescope", sys_id, _key)
+                    state[_key] = None
+            await self._publisher.publish_mqtt(topic + "state", json.dumps(state))
         except (RequestConnectionError, DeviceResponseError) as rcedre:
             await self._publisher.publish_mqtt(topic + "lwt", "OFF")
             _LOGGER.error("%s: Not connected", sys_id)
