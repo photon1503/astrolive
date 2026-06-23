@@ -134,6 +134,14 @@ FUNCTIONS = {
             STATE_CLASS_NONE,
         ],
         [
+            TYPE_BINARY_SENSOR,
+            "Motor state",
+            UNIT_OF_MEASUREMENT_NONE,
+            DEVICE_TYPE_TELESCOPE_ICON,
+            DEVICE_CLASS_NONE,
+            STATE_CLASS_NONE,
+        ],
+        [
             TYPE_SENSOR,
             "Altitude",
             UNIT_OF_MEASUREMENT_DEGREE,

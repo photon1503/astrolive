@@ -116,6 +116,12 @@ class AstroLive:
                 if command["command"] == "unpark":
                     component.unpark()
                     _LOGGER.info("Executed Telescope unpark")
+                if command["command"] in ("motoron", "telescope:motoron"):
+                    component.motoron()
+                    _LOGGER.info("Executed Telescope motor on")
+                if command["command"] in ("motoroff", "telescope:motoroff"):
+                    component.motoroff()
+                    _LOGGER.info("Executed Telescope motor off")
                 if command["command"] == "slew":
                     _LOGGER.info(
                         "Slewing Telescope slew to RA: %d, DEC: %d",

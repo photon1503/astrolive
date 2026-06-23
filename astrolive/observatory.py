@@ -1977,6 +1977,18 @@ class Telescope(Device):
         """Park the mount."""
         self._put("park")
 
+    def motorstate(self) -> bool:
+        """Read mount motor state via custom driver command."""
+        return self.commandbool("MotStat", True)
+
+    def motoron(self):
+        """Enable mount motors via custom driver action."""
+        self.action("telescope:motoron")
+
+    def motoroff(self):
+        """Disable mount motors via custom driver action."""
+        self.action("telescope:motoroff")
+
     def pulseguide(self, Direction: int, Duration: int):
         """Move the scope in the given direction for the given time.
 
