@@ -191,7 +191,8 @@ class Device(Component):
             *Parameters: List of required parameters or empty if none are required.
 
         """
-        return self._put("action", Action=Action, Parameters=Parameters)["Value"]
+        parameters = "" if len(Parameters) == 0 else ",".join(str(parameter) for parameter in Parameters)
+        return self._put("action", Action=Action, Parameters=parameters)["Value"]
 
     def commandblind(self, Command: str, Raw: bool):
         """Transmit an arbitrary string to the device and does not wait for a response.
