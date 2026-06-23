@@ -17,6 +17,7 @@ from .const import (
     COLOR_GREEN,
     DEVICE_CLASS_NONE,
     DEVICE_CLASS_SWITCH,
+    DEVICE_TYPE_DOME,
     DEVICE_TYPE_FILTERWHEEL,
     DEVICE_TYPE_FOCUSER,
     DEVICE_TYPE_OBSERVATORY,
@@ -126,6 +127,13 @@ class AstroLive:
                         command["ra"],
                         command["dec"],
                     )
+            if component.kind == DEVICE_TYPE_DOME:
+                if command["command"] == "park":
+                    component.park()
+                    _LOGGER.info("Executed Dome park")
+                if command["command"] == "closeshutter":
+                    component.closeshutter()
+                    _LOGGER.info("Executed Dome close shutter")
         except RequestConnectionError:
             _LOGGER.error("Connection Error to %s", command["component"])
 
