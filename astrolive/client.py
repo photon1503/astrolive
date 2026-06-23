@@ -106,6 +106,7 @@ class AstroLive:
             component = self.obs.component_by_absolute_sys_id(command.get("component", None))
         except LookupError:
             _LOGGER.error("Can not find component sys_id=%s.", command["component"])
+            return
 
         try:
             if component.kind == DEVICE_TYPE_TELESCOPE:
