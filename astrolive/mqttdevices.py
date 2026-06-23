@@ -295,6 +295,7 @@ class Telescope(MqttConnector):
                 "at_home": "on" if device.athome() else "off",
                 "at_park": "on" if device.atpark() else "off",
                 "motor_state": "on" if device.motorstate() else "off",
+                "tracking": "on" if device.tracking() else "off",
                 "altitude": round(device.altitude(), 3),
                 "azimuth": round(device.azimuth(), 3),
                 "declination": round(device.declination(), 3),

@@ -116,6 +116,22 @@ class AstroLive:
                 if command["command"] == "unpark":
                     component.unpark()
                     _LOGGER.info("Executed Telescope unpark")
+                if command["command"] in ("trackingon", "telescope:trackingon"):
+                    component.tracking(True)
+                    _LOGGER.info("Executed Telescope tracking on")
+                if command["command"] in ("trackingoff", "telescope:trackingoff"):
+                    component.tracking(False)
+                    _LOGGER.info("Executed Telescope tracking off")
+                if command["command"] == "tracking":
+                    tracking_value = command.get("tracking", command.get("value", None))
+                    if isinstance(tracking_value, bool):
+                        tracking_state = tracking_value
+                    elif isinstance(tracking_value, str):
+                        tracking_state = tracking_value.strip().lower() in ("1", "true", "on", "yes")
+                    else:
+                        raise ValueError("Tracking command requires 'tracking' or 'value' boolean")
+                    component.tracking(tracking_state)
+                    _LOGGER.info("Executed Telescope tracking set to %s", tracking_state)
                 if command["command"] in ("motoron", "telescope:motoron"):
                     component.motoron()
                     _LOGGER.info("Executed Telescope motor on")
@@ -144,7 +160,7 @@ class AstroLive:
         except RequestConnectionError:
             _LOGGER.error("Connection Error to %s", command["component"])
 
-        except TypeError as texc:
+        except (TypeError, ValueError) as texc:
             _LOGGER.error(texc)
 
         except AlpacaError as aexc:
